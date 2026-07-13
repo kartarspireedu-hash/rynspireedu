@@ -1,0 +1,166 @@
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=Outfit:wght@300;400;500;600;700&family=Cinzel:wght@500;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* RynSpireEdu — Royal Purple + Sparkling Gold on White */
+    --background: 0 0% 100%;
+    --foreground: 262 40% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 262 40% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 262 40% 12%;
+    --primary: 268 72% 38%;              /* Royal purple */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 268 55% 96%;
+    --secondary-foreground: 268 72% 30%;
+    --muted: 268 30% 96%;
+    --muted-foreground: 262 12% 45%;
+    --accent: 43 92% 55%;                /* Sparkling gold */
+    --accent-foreground: 262 40% 12%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 268 25% 90%;
+    --input: 268 25% 90%;
+    --ring: 43 92% 55%;
+    --radius: 0.9rem;
+
+    --gold: 43 92% 55%;
+    --purple-deep: 268 72% 22%;
+    --purple: 268 72% 38%;
+    --purple-soft: 268 60% 60%;
+
+    --chart-1: 268 72% 38%;
+    --chart-2: 43 92% 55%;
+    --chart-3: 292 60% 45%;
+    --chart-4: 200 80% 45%;
+    --chart-5: 340 75% 55%;
+  }
+
+  .dark {
+    --background: 268 40% 6%;
+    --foreground: 0 0% 98%;
+    --card: 268 40% 10%;
+    --card-foreground: 0 0% 98%;
+    --popover: 268 40% 10%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 268 72% 22%;
+    --secondary: 268 30% 14%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 268 30% 14%;
+    --muted-foreground: 268 15% 65%;
+    --accent: 43 95% 60%;
+    --accent-foreground: 268 72% 12%;
+    --destructive: 0 62% 40%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 268 25% 20%;
+    --input: 268 25% 20%;
+    --ring: 43 95% 60%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  html, body, #root { height: 100%; }
+  body {
+    margin: 0;
+    font-family: "Outfit", ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    @apply bg-background text-foreground;
+  }
+  h1, h2, h3, .font-display { font-family: "Playfair Display", ui-serif, Georgia, serif; }
+  .font-mono, code, pre { font-family: "JetBrains Mono", ui-monospace, monospace; }
+  ::selection { background: hsl(var(--accent) / 0.4); color: hsl(var(--foreground)); }
+}
+
+@layer components {
+  .container-x { @apply max-w-7xl mx-auto px-5 sm:px-8 lg:px-12; }
+  .glass-header {
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    background: hsl(var(--background) / 0.78);
+    border-bottom: 1px solid hsl(var(--border));
+  }
+  .pill-btn { @apply rounded-full transition-colors duration-200; }
+  .card-lift { transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease; }
+  .card-lift:hover { transform: translateY(-3px); box-shadow: 0 14px 40px rgba(107, 33, 168, 0.12); border-color: hsl(var(--accent) / 0.55); }
+
+  /* Brand mark: Ryn (gold sparkle) + SpireEdu (purple) */
+  .brand-ryn {
+    background: linear-gradient(120deg, #f5c542 0%, #ffe27a 40%, #d99e1b 60%, #ffdc6b 100%);
+    background-size: 220% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: brand-shimmer 4s linear infinite;
+    font-weight: 700;
+  }
+  @keyframes brand-shimmer {
+    0% { background-position: 0% 0; }
+    100% { background-position: 200% 0; }
+  }
+  .brand-spire { color: hsl(268 72% 44%); font-weight: 700; }
+  .dark .brand-spire { color: hsl(268 80% 78%); }
+  .brand-sparkle {
+    display: inline-block;
+    color: #f5c542;
+    filter: drop-shadow(0 0 6px rgba(245, 197, 66, 0.6));
+    animation: sparkle-pulse 2.2s ease-in-out infinite;
+  }
+  @keyframes sparkle-pulse {
+    0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.9; }
+    50% { transform: scale(1.25) rotate(20deg); opacity: 1; }
+  }
+
+  .gold-underline {
+    background-image: linear-gradient(hsl(var(--accent)), hsl(var(--accent)));
+    background-repeat: no-repeat;
+    background-size: 100% 3px;
+    background-position: 0 100%;
+    padding-bottom: 2px;
+  }
+
+  /* Aurora background for hero */
+  .aurora {
+    position: absolute; inset: 0; overflow: hidden; z-index: -1;
+    background:
+      radial-gradient(60% 55% at 15% 20%, hsl(268 90% 65% / 0.28) 0%, transparent 60%),
+      radial-gradient(50% 45% at 85% 25%, hsl(43 95% 60% / 0.20) 0%, transparent 60%),
+      radial-gradient(55% 50% at 50% 100%, hsl(268 85% 55% / 0.22) 0%, transparent 60%),
+      hsl(var(--background));
+  }
+  .dark .aurora {
+    background:
+      radial-gradient(60% 55% at 15% 20%, hsl(268 90% 45% / 0.55) 0%, transparent 60%),
+      radial-gradient(50% 45% at 85% 25%, hsl(43 95% 45% / 0.30) 0%, transparent 60%),
+      radial-gradient(55% 50% at 50% 100%, hsl(268 90% 25% / 0.55) 0%, transparent 60%),
+      hsl(var(--background));
+  }
+  .noise::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background-image: radial-gradient(rgba(107, 33, 168, 0.04) 1px, transparent 1px);
+    background-size: 5px 5px;
+  }
+
+  /* Mobile sticky action bar */
+  .mobile-sticky {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: hsl(var(--background) / 0.92);
+    backdrop-filter: blur(14px);
+    border-top: 1px solid hsl(var(--border));
+    z-index: 45;
+  }
+}
+
+:focus-visible { outline: 2px solid hsl(var(--accent)); outline-offset: 2px; border-radius: 6px; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  .brand-ryn { animation: none; }
+  .brand-sparkle { animation: none; }
+}
