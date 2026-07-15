@@ -1,22 +1,39 @@
 import { useEffect } from "react";
 
 /**
- * Loads the Tawk.to live chat widget site-wide.
- * Configure via Railway environment variables on the frontend service:
- *   VITE_TAWK_PROPERTY_ID  -> your Property ID
- *   VITE_TAWK_WIDGET_ID    -> your Widget ID
- * Both are found in Tawk.to dashboard -> Administration -> Chat Widget -> Widget code.
- * If either is missing, the widget simply does not load (no errors).
+ * Loads the Tawk.to live chat widget site-wide, and forwards pre-chat
+ * form submissions to our backend so they land in the "Tawk Enquiries"
+ * tab of the Google Sheet.
+ *
+ * IDs can be overridden via Railway env vars VITE_TAWK_PROPERTY_ID /
+ * VITE_TAWK_WIDGET_ID, but default to the real widget already set up.
  */
+const DEFAULT_PROPERTY_ID = "6a5512c6f9a2241d47e6e34d";
+const DEFAULT_WIDGET_ID = "1jte52mol";
+
 export default function TawkChat() {
   useEffect(() => {
-    const propertyId = import.meta.env.VITE_TAWK_PROPERTY_ID;
-    const widgetId = import.meta.env.VITE_TAWK_WIDGET_ID;
+    const propertyId = import.meta.env.VITE_TAWK_PROPERTY_ID || DEFAULT_PROPERTY_ID;
+    const widgetId = import.meta.env.VITE_TAWK_WIDGET_ID || DEFAULT_WIDGET_ID;
     if (!propertyId || !widgetId) return;
     if (document.getElementById("tawk-script")) return;
 
     window.Tawk_API = window.Tawk_API || {};
     window.Tawk_LoadStart = new Date();
+
+    // Fires when a visitor submits the pre-chat form (name/email/etc).
+    window.Tawk_API.onPrechatSubmit = function (data) {
+      try {
+        const apiBase = import.meta.env.VITE_BACKEND_URL || "";
+        fetch(`${apiBase}/api/tawk-lead`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data || {}),
+        }).catch(() => {});
+      } catch (e) {
+        // fail silently, never block the chat widget
+      }
+    };
 
     const s = document.createElement("script");
     s.id = "tawk-script";

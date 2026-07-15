@@ -385,15 +385,37 @@ async def geo(request: Request):
 # ------------------------------------------------------------------
 # Google Sheets sync (via Apps Script Web App webhook, graceful failure)
 # ------------------------------------------------------------------
-def _send_to_google_sheet_sync(doc: dict) -> None:
+# ------------------------------------------------------------------
+# Google Sheets sync (via Apps Script Web App webhook, graceful failure)
+# ------------------------------------------------------------------
+def _send_to_google_sheet_sync(doc: dict, sheet_name: str = "Demo Bookings") -> None:
     url = os.environ.get("GOOGLE_SHEETS_WEBHOOK_URL", "")
     if not url:
         logger.warning("GOOGLE_SHEETS_WEBHOOK_URL not set — skipping sheet sync")
         return
     try:
-        requests.post(url, json=doc, timeout=10)
+        requests.post(url, json={"sheet": sheet_name, **doc}, timeout=10)
     except Exception:
-        logger.exception("Failed to sync demo booking to Google Sheet")
+        logger.exception("Failed to sync data to Google Sheet")
+
+class TawkLeadIn(BaseModel):
+    name: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    message: str | None = None
+
+@api_router.post("/tawk-lead")
+async def tawk_lead(payload: TawkLeadIn, background: BackgroundTasks):
+    doc = {
+        "id": str(uuid.uuid4()),
+        "name": payload.name or "",
+        "email": payload.email or "",
+        "phone": payload.phone or "",
+        "message": payload.message or "",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    background.add_task(_send_to_google_sheet_sync, doc, "Tawk Enquiries")
+    return {"ok": True}
 
 # ------------------------------------------------------------------
 # Demo bookings
@@ -423,7 +445,7 @@ async def create_demo(payload: DemoBookingIn, background: BackgroundTasks):
     care = os.environ.get("CARE_EMAIL", "care@rynspireedu.com")
     background.add_task(_send_email_sync, [doc["email"]], "Your RynSpireEdu Free Demo is Confirmed", _demo_confirmation_html(doc), care)
     background.add_task(_send_email_sync, [care], f"[New Demo] {doc['name']} · {doc['subject']} · {doc['demo_date']}", _demo_admin_html(doc), doc["email"])
-    background.add_task(_send_to_google_sheet_sync, doc)
+    background.add_task(_send_to_google_sheet_sync, doc, "Demo Bookings")
 
     return DemoBookingOut(**{k: v for k, v in doc.items() if k != "_id" and k != "currency"})
 
