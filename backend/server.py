@@ -20,6 +20,7 @@ from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Literal
 
 import razorpay
+import requests
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from starlette.middleware.cors import CORSMiddleware
@@ -382,6 +383,19 @@ async def geo(request: Request):
     return {"country": None, "source": "unknown"}
 
 # ------------------------------------------------------------------
+# Google Sheets sync (via Apps Script Web App webhook, graceful failure)
+# ------------------------------------------------------------------
+def _send_to_google_sheet_sync(doc: dict) -> None:
+    url = os.environ.get("GOOGLE_SHEETS_WEBHOOK_URL", "")
+    if not url:
+        logger.warning("GOOGLE_SHEETS_WEBHOOK_URL not set — skipping sheet sync")
+        return
+    try:
+        requests.post(url, json=doc, timeout=10)
+    except Exception:
+        logger.exception("Failed to sync demo booking to Google Sheet")
+
+# ------------------------------------------------------------------
 # Demo bookings
 # ------------------------------------------------------------------
 @api_router.post("/demos", response_model=DemoBookingOut)
@@ -409,6 +423,7 @@ async def create_demo(payload: DemoBookingIn, background: BackgroundTasks):
     care = os.environ.get("CARE_EMAIL", "care@rynspireedu.com")
     background.add_task(_send_email_sync, [doc["email"]], "Your RynSpireEdu Free Demo is Confirmed", _demo_confirmation_html(doc), care)
     background.add_task(_send_email_sync, [care], f"[New Demo] {doc['name']} · {doc['subject']} · {doc['demo_date']}", _demo_admin_html(doc), doc["email"])
+    background.add_task(_send_to_google_sheet_sync, doc)
 
     return DemoBookingOut(**{k: v for k, v in doc.items() if k != "_id" and k != "currency"})
 

@@ -74,6 +74,7 @@
     @apply bg-background text-foreground;
   }
   h1, h2, h3, .font-display { font-family: "Playfair Display", ui-serif, Georgia, serif; }
+  .price-amount { font-family: "Outfit", ui-sans-serif, system-ui, sans-serif; font-weight: 800; letter-spacing: -0.02em; }
   .font-mono, code, pre { font-family: "JetBrains Mono", ui-monospace, monospace; }
   ::selection { background: hsl(var(--accent) / 0.4); color: hsl(var(--foreground)); }
 }

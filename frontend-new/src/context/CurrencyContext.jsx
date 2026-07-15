@@ -9,14 +9,14 @@ import api from "@/lib/api";
 // Snapshot rates (Feb 2026, from USD). Round-off in UI presentation.
 export const FX = {
   USD: { rate: 1.0,   symbol: "$",    label: "US Dollar",           locale: "en-US", flag: "🇺🇸" },
-  AUD: { rate: 1.55,  symbol: "A$",   label: "Australian Dollar",   locale: "en-AU", flag: "🇦🇺" },
-  NZD: { rate: 1.68,  symbol: "NZ$",  label: "New Zealand Dollar",  locale: "en-NZ", flag: "🇳🇿" },
+  AUD: { rate: 1.55,  symbol: "$",    label: "Australian Dollar",   locale: "en-AU", flag: "🇦🇺" },
+  NZD: { rate: 1.68,  symbol: "$",    label: "New Zealand Dollar",  locale: "en-NZ", flag: "🇳🇿" },
   GBP: { rate: 0.79,  symbol: "£",    label: "British Pound",       locale: "en-GB", flag: "🇬🇧" },
   EUR: { rate: 0.92,  symbol: "€",    label: "Euro",                locale: "en-IE", flag: "🇪🇺" },
-  CAD: { rate: 1.36,  symbol: "C$",   label: "Canadian Dollar",     locale: "en-CA", flag: "🇨🇦" },
+  CAD: { rate: 1.36,  symbol: "$",    label: "Canadian Dollar",     locale: "en-CA", flag: "🇨🇦" },
   INR: { rate: 83.5,  symbol: "₹",    label: "Indian Rupee",        locale: "en-IN", flag: "🇮🇳" },
   AED: { rate: 3.67,  symbol: "AED ", label: "UAE Dirham",          locale: "en-AE", flag: "🇦🇪" },
-  SGD: { rate: 1.34,  symbol: "S$",   label: "Singapore Dollar",    locale: "en-SG", flag: "🇸🇬" },
+  SGD: { rate: 1.34,  symbol: "$",    label: "Singapore Dollar",    locale: "en-SG", flag: "🇸🇬" },
   CNY: { rate: 7.20,  symbol: "¥",    label: "Chinese Yuan",        locale: "zh-CN", flag: "🇨🇳" },
 };
 

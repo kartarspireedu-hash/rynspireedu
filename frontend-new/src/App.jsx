@@ -5,6 +5,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { CurrencyProvider } from "@/context/CurrencyContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import TawkChat from "@/components/TawkChat";
 
 import Landing from "@/pages/Landing";
 import Pricing from "@/pages/Pricing";
@@ -24,6 +25,7 @@ function App() {
       <ThemeProvider>
         <CurrencyProvider>
           <AuthProvider>
+            <TawkChat />
             <BrowserRouter>
               <Routes>
                 <Route path="/" element={<Landing />} />

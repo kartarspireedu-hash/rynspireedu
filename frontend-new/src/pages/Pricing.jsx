@@ -106,7 +106,7 @@ export default function Pricing() {
 
                 <div className="mt-5">
                   <div className="flex items-baseline gap-2">
-                    <span className="font-display text-4xl sm:text-5xl">{format(p.priceUsd)}</span>
+                    <span className="price-amount text-5xl sm:text-6xl">{format(p.priceUsd)}</span>
                     <span className="text-xs text-muted-foreground uppercase tracking-[0.15em]">{p.perLabel}</span>
                   </div>
                   {perSession && (
@@ -149,7 +149,7 @@ export default function Pricing() {
             <span className="text-xs px-2 py-1 rounded-full bg-secondary border border-border w-fit">{PLANS[0].tag}</span>
             <h3 className="mt-3 font-display text-2xl">Hourly Plan</h3>
             <div className="mt-3 flex items-baseline gap-2">
-              <span className="font-display text-4xl">{format(PLANS[0].priceUsd, { showDecimals: true })}</span>
+              <span className="price-amount text-5xl">{format(PLANS[0].priceUsd, { showDecimals: true })}</span>
               <span className="text-xs text-muted-foreground uppercase tracking-[0.15em]">{PLANS[0].perLabel}</span>
             </div>
             <ul className="mt-4 space-y-2 text-sm flex-1">

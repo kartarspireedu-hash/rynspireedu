@@ -7,7 +7,7 @@ import { Sparkles } from "lucide-react";
  * Optional logo image on the left.
  */
 export default function BrandMark({ size = "md", withLogo = true, className = "" }) {
-  const logoUrl = import.meta.env.VITE_LOGO_URL || "";
+  const logoUrl = import.meta.env.VITE_LOGO_URL || "/logo.png";
   const sizes = {
     xs: { logo: "h-6 w-6", text: "text-base", spark: 10 },
     sm: { logo: "h-8 w-8", text: "text-lg", spark: 12 },
