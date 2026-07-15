@@ -11,6 +11,7 @@ import Landing from "@/pages/Landing";
 import Pricing from "@/pages/Pricing";
 import About from "@/pages/About";
 import BookDemo from "@/pages/BookDemo";
+import PaymentSuccess from "@/pages/PaymentSuccess";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import StudentDashboard from "@/pages/StudentDashboard";
@@ -32,6 +33,7 @@ function App() {
                 <Route path="/pricing" element={<Pricing />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/book-demo" element={<BookDemo />} />
+                <Route path="/payment-success" element={<PaymentSuccess />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
 

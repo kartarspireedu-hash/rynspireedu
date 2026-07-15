@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
@@ -19,6 +19,7 @@ const RAZORPAY_SUPPORTED_CURRENCIES = ["INR", "USD", "AUD", "NZD", "GBP", "EUR",
 
 export default function Pricing() {
   const { currency, format } = useCurrency();
+  const navigate = useNavigate();
   const [busy, setBusy] = useState(null); // plan_key of the one being paid
   const subscriptionPlans = useMemo(() => PLANS.filter((p) => p.key !== "hourly"), []);
 
@@ -47,7 +48,13 @@ export default function Pricing() {
               razorpay_signature: resp.razorpay_signature,
               plan_key: plan.key,
             });
-            toast.success(`Payment successful! Welcome to ${plan.name}.`);
+            navigate("/payment-success", {
+              state: {
+                planName: plan.name,
+                paymentId: resp.razorpay_payment_id,
+                amountDisplay: format(plan.priceUsd),
+              },
+            });
           } catch (e) {
             toast.error(e.response?.data?.detail || "Payment verification failed");
           }
