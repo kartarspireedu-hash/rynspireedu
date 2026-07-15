@@ -385,16 +385,18 @@ async def geo(request: Request):
 # ------------------------------------------------------------------
 # Google Sheets sync (via Apps Script Web App webhook, graceful failure)
 # ------------------------------------------------------------------
-# ------------------------------------------------------------------
-# Google Sheets sync (via Apps Script Web App webhook, graceful failure)
-# ------------------------------------------------------------------
 def _send_to_google_sheet_sync(doc: dict, sheet_name: str = "Demo Bookings") -> None:
     url = os.environ.get("GOOGLE_SHEETS_WEBHOOK_URL", "")
     if not url:
         logger.warning("GOOGLE_SHEETS_WEBHOOK_URL not set — skipping sheet sync")
         return
+    # Strip Mongo's internal _id (ObjectId) and any other non-JSON-serializable
+    # values before sending, since these break requests' JSON encoder.
+    clean_doc = {k: v for k, v in doc.items() if k != "_id"}
+    clean_doc = {k: (str(v) if not isinstance(v, (str, int, float, bool, type(None))) else v)
+                 for k, v in clean_doc.items()}
     try:
-        requests.post(url, json={"sheet": sheet_name, **doc}, timeout=10)
+        requests.post(url, json={"sheet": sheet_name, **clean_doc}, timeout=10)
     except Exception:
         logger.exception("Failed to sync data to Google Sheet")
 
