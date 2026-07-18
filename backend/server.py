@@ -40,6 +40,50 @@ api_router = APIRouter(prefix="/api")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("rynspireedu")
 
+# ------------------------------------------------------------------
+# Security headers (applied to every response)
+# ------------------------------------------------------------------
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
+    return response
+
+# ------------------------------------------------------------------
+# Lightweight in-memory rate limiter for public, unauthenticated endpoints
+# (demo bookings, contact form, chat leads, payment order creation).
+# Not a distributed limiter — fine for a single Railway instance; if the
+# app is ever scaled to multiple instances, move this to Redis.
+# ------------------------------------------------------------------
+_rate_buckets: dict[str, list[float]] = {}
+RATE_LIMITED_PATHS = {
+    "/api/demos": (5, 300),          # 5 requests / 5 minutes per IP
+    "/api/contact": (5, 300),
+    "/api/tawk-lead": (10, 300),
+    "/api/payments/create-order": (10, 300),
+    "/api/auth/register": (5, 300),
+}
+
+@app.middleware("http")
+async def rate_limit(request: Request, call_next):
+    limit_cfg = RATE_LIMITED_PATHS.get(request.url.path)
+    if limit_cfg and request.method == "POST":
+        max_requests, window_seconds = limit_cfg
+        ip = request.client.host if request.client else "unknown"
+        key = f"{request.url.path}:{ip}"
+        now = asyncio.get_event_loop().time()
+        bucket = [t for t in _rate_buckets.get(key, []) if now - t < window_seconds]
+        if len(bucket) >= max_requests:
+            from fastapi.responses import JSONResponse
+            return JSONResponse(status_code=429, content={"detail": "Too many requests. Please try again in a few minutes."})
+        bucket.append(now)
+        _rate_buckets[key] = bucket
+    return await call_next(request)
+
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_MINUTES = 60
 REFRESH_TOKEN_DAYS = 7
@@ -117,7 +161,7 @@ def require_role(*allowed: str):
 class RegisterInput(BaseModel):
     name: str = Field(min_length=2, max_length=80)
     email: EmailStr
-    password: str = Field(min_length=6, max_length=128)
+    password: str = Field(min_length=8, max_length=128)
     role: Role = "student"
     grade: Optional[str] = None
     country: Optional[str] = "Australia"
@@ -148,7 +192,7 @@ class DemoBookingIn(BaseModel):
     demo_date: str = Field(description="YYYY-MM-DD")
     demo_time: str = Field(description="HH:MM (24h)")
     timezone: Optional[str] = "Australia/Sydney"
-    additional_notes: Optional[str] = ""
+    additional_notes: Optional[str] = Field(default="", max_length=1000)
     currency: Optional[str] = "USD"
 
 class DemoBookingOut(BaseModel):
@@ -401,10 +445,10 @@ def _send_to_google_sheet_sync(doc: dict, sheet_name: str = "Demo Bookings") -> 
         logger.exception("Failed to sync data to Google Sheet")
 
 class TawkLeadIn(BaseModel):
-    name: str | None = None
-    email: str | None = None
-    phone: str | None = None
-    message: str | None = None
+    name: str | None = Field(default=None, max_length=100)
+    email: str | None = Field(default=None, max_length=120)
+    phone: str | None = Field(default=None, max_length=30)
+    message: str | None = Field(default=None, max_length=1000)
 
 @api_router.post("/tawk-lead")
 async def tawk_lead(payload: TawkLeadIn, background: BackgroundTasks):
@@ -485,10 +529,10 @@ async def export_demos_csv(_: dict = Depends(require_role("admin", "owner", "coo
 # Contact / Care email
 # ------------------------------------------------------------------
 class ContactIn(BaseModel):
-    name: str
+    name: str = Field(min_length=2, max_length=80)
     email: EmailStr
-    phone: str | None = None
-    message: str
+    phone: str | None = Field(default=None, max_length=30)
+    message: str = Field(min_length=1, max_length=2000)
 
 @api_router.post("/contact")
 async def contact(payload: ContactIn, background: BackgroundTasks):
