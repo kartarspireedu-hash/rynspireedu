@@ -52,6 +52,7 @@ export default function SiteFooter() {
             <li><Link to="/pricing" className="hover:text-primary">Pricing</Link></li>
             <li><Link to="/about" className="hover:text-primary">About</Link></li>
             <li><Link to="/book-demo" className="hover:text-primary">Book Free Demo</Link></li>
+            <li><Link to="/contact" className="hover:text-primary">Contact Us</Link></li>
           </ul>
         </div>
         <div>
@@ -59,6 +60,8 @@ export default function SiteFooter() {
           <ul className="space-y-2 text-sm">
             <li><a href="mailto:care@rynspireedu.com" className="hover:text-primary">care@rynspireedu.com</a></li>
             <li>Sydney · Auckland · London</li>
+            <li><Link to="/privacy-policy" className="hover:text-primary">Privacy Policy</Link></li>
+            <li><Link to="/terms" className="hover:text-primary">Payment Terms &amp; Conditions</Link></li>
             <li>© {new Date().getFullYear()} SpireEdu Services</li>
           </ul>
         </div>

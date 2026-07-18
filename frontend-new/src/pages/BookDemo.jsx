@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -74,6 +74,19 @@ export default function BookDemo() {
   });
   const [busy, setBusy] = useState(false);
   const [bookingId, setBookingId] = useState("");
+  const pixelFiredRef = useRef(false);
+
+  useEffect(() => {
+    if (step === 3 && !pixelFiredRef.current) {
+      pixelFiredRef.current = true;
+      if (window.fbq) {
+        window.fbq('track', 'Schedule', {
+          content_name: 'free_demo_class',
+          content_category: 'demo_booking'
+        });
+      }
+    }
+  }, [step]);
 
   const cities = useMemo(() => CITIES_BY_COUNTRY[form.country] || ["Other"], [form.country]);
 

@@ -12,6 +12,10 @@ import Pricing from "@/pages/Pricing";
 import About from "@/pages/About";
 import BookDemo from "@/pages/BookDemo";
 import PaymentSuccess from "@/pages/PaymentSuccess";
+import Checkout from "@/pages/Checkout";
+import ContactUs from "@/pages/ContactUs";
+import PrivacyPolicy from "@/pages/PrivacyPolicy";
+import Terms from "@/pages/Terms";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import StudentDashboard from "@/pages/StudentDashboard";
@@ -34,6 +38,10 @@ function App() {
                 <Route path="/about" element={<About />} />
                 <Route path="/book-demo" element={<BookDemo />} />
                 <Route path="/payment-success" element={<PaymentSuccess />} />
+                <Route path="/checkout" element={<Checkout />} />
+                <Route path="/contact" element={<ContactUs />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/terms" element={<Terms />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
 

@@ -477,6 +477,7 @@ async def export_demos_csv(_: dict = Depends(require_role("admin", "owner", "coo
 class ContactIn(BaseModel):
     name: str
     email: EmailStr
+    phone: str | None = None
     message: str
 
 @api_router.post("/contact")
@@ -490,13 +491,16 @@ async def contact(payload: ContactIn, background: BackgroundTasks):
       <p style="color:#6b7280;font-size:13px;">— RynSpireEdu · Best Online Tutoring Services</p>
     </div>
     """
-    admin_html = f"<h3>New Care Message</h3><p><b>From:</b> {payload.name} &lt;{payload.email}&gt;</p><p>{payload.message}</p>"
+    admin_html = f"<h3>New Care Message</h3><p><b>From:</b> {payload.name} &lt;{payload.email}&gt;{f' · {payload.phone}' if payload.phone else ''}</p><p>{payload.message}</p>"
     background.add_task(_send_email_sync, [payload.email], "Thanks for contacting RynSpireEdu", user_html, care)
     background.add_task(_send_email_sync, [care], f"[Care] {payload.name}", admin_html, payload.email)
-    await db.contact_messages.insert_one({
+    contact_doc = {
         "id": str(uuid.uuid4()), "name": payload.name, "email": payload.email.lower(),
-        "message": payload.message, "created_at": datetime.now(timezone.utc).isoformat()
-    })
+        "phone": payload.phone or "", "message": payload.message,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.contact_messages.insert_one(contact_doc)
+    background.add_task(_send_to_google_sheet_sync, contact_doc, "Contact Enquiries")
     return {"ok": True}
 
 # ------------------------------------------------------------------
