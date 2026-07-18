@@ -18,9 +18,9 @@ export default function BrandMark({ size = "md", withLogo = true, className = ""
   const s = sizes[size] || sizes.md;
 
   return (
-    <span className={`inline-flex items-center gap-2 ${className}`} data-testid="brand-mark">
+    <span className={`inline-flex items-center gap-0.5 ${className}`} data-testid="brand-mark">
       {withLogo && logoUrl && (
-        <span className={`${s.logo} shrink-0`}>
+        <span className={`${s.logo} shrink-0 -mr-1`}>
           <img src={logoUrl} alt="RynSpireEdu logo" className="h-full w-full object-contain" />
         </span>
       )}

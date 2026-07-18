@@ -44,7 +44,7 @@ export default function SiteFooter() {
           <p className="text-sm text-muted-foreground mt-4 max-w-sm leading-relaxed">
             Premium 1-to-1 online tutoring for Kindergarten to Year 12. A SpireEdu Services brand — trusted across Australia, New Zealand and worldwide.
           </p>
-          <p className="mt-4 text-xs uppercase tracking-[0.2em] text-muted-foreground">SpireEdu Services · RynSpireEdu</p>
+          <p className="mt-4 text-xs uppercase tracking-[0.2em] text-muted-foreground">RynSpireEdu · SpireEdu Services</p>
         </div>
         <div>
           <h4 className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-4">Explore</h4>
@@ -59,7 +59,7 @@ export default function SiteFooter() {
           <h4 className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-4">Contact</h4>
           <ul className="space-y-2 text-sm">
             <li><a href="mailto:care@rynspireedu.com" className="hover:text-primary">care@rynspireedu.com</a></li>
-            <li>Sydney · Auckland · London</li>
+            <li>Sydney · Auckland</li>
             <li><Link to="/privacy-policy" className="hover:text-primary">Privacy Policy</Link></li>
             <li><Link to="/terms" className="hover:text-primary">Payment Terms &amp; Conditions</Link></li>
             <li>© {new Date().getFullYear()} SpireEdu Services</li>

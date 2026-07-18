@@ -422,8 +422,18 @@ async def tawk_lead(payload: TawkLeadIn, background: BackgroundTasks):
 # ------------------------------------------------------------------
 # Demo bookings
 # ------------------------------------------------------------------
+@api_router.get("/demos/availability")
+async def demo_availability(date: str):
+    rows = await db.demo_bookings.find({"demo_date": date}, {"_id": 0, "demo_time": 1}).to_list(200)
+    booked_times = sorted({r["demo_time"] for r in rows if r.get("demo_time")})
+    return {"date": date, "booked_times": booked_times}
+
 @api_router.post("/demos", response_model=DemoBookingOut)
 async def create_demo(payload: DemoBookingIn, background: BackgroundTasks):
+    existing = await db.demo_bookings.find_one({"demo_date": payload.demo_date, "demo_time": payload.demo_time})
+    if existing:
+        raise HTTPException(status_code=409, detail="That time slot was just booked by someone else — please pick another time.")
+
     bid = str(uuid.uuid4())
     doc = {
         "id": bid,

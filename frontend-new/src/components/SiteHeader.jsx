@@ -11,6 +11,7 @@ const nav = [
   { to: "/", label: "Home" },
   { to: "/pricing", label: "Pricing" },
   { to: "/about", label: "About" },
+  { to: "/contact", label: "Contact Us" },
 ];
 
 export default function SiteHeader() {

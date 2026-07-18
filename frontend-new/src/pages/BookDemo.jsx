@@ -74,7 +74,25 @@ export default function BookDemo() {
   });
   const [busy, setBusy] = useState(false);
   const [bookingId, setBookingId] = useState("");
+  const [bookedTimes, setBookedTimes] = useState([]);
   const pixelFiredRef = useRef(false);
+
+  const dateKey = date.toISOString().slice(0, 10);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.get("/demos/availability", { params: { date: dateKey } })
+      .then(({ data }) => { if (!cancelled) setBookedTimes(data.booked_times || []); })
+      .catch(() => { if (!cancelled) setBookedTimes([]); });
+    return () => { cancelled = true; };
+  }, [dateKey]);
+
+  useEffect(() => {
+    if (bookedTimes.includes(time)) {
+      const firstFree = TIME_SLOTS.find((t) => !bookedTimes.includes(t));
+      if (firstFree) setTime(firstFree);
+    }
+  }, [bookedTimes]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (step === 3 && !pixelFiredRef.current) {
@@ -114,6 +132,10 @@ export default function BookDemo() {
       const detail = e.response?.data?.detail;
       const msg = Array.isArray(detail) ? detail.map((x) => x.msg || JSON.stringify(x)).join(" · ") : (detail || "Could not book demo");
       toast.error(msg);
+      if (e.response?.status === 409) {
+        setBookedTimes((prev) => Array.from(new Set([...prev, time])));
+        setStep(1);
+      }
     } finally {
       setBusy(false);
     }
@@ -182,9 +204,16 @@ export default function BookDemo() {
                     <Select value={time} onValueChange={setTime}>
                       <SelectTrigger className="mt-1.5 rounded-xl" data-testid="demo-time-select"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {TIME_SLOTS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                        {TIME_SLOTS.map((t) => (
+                          <SelectItem key={t} value={t} disabled={bookedTimes.includes(t)}>
+                            {t}{bookedTimes.includes(t) ? " · Booked" : ""}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
+                    {bookedTimes.length === TIME_SLOTS.length && (
+                      <p className="mt-1.5 text-xs text-destructive">All slots are full on this date — please pick another date.</p>
+                    )}
                   </div>
                   <div className="sm:col-span-2">
                     <Label className="text-xs">Your timezone</Label>
@@ -199,7 +228,7 @@ export default function BookDemo() {
 
                 <div className="mt-8 flex items-center justify-between">
                   <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Clock size={12} /> 25-minute free demo · No card required</p>
-                  <Button onClick={() => setStep(2)} className="pill-btn bg-primary text-primary-foreground hover:bg-accent hover:text-accent-foreground" data-testid="demo-next-btn">
+                  <Button onClick={() => setStep(2)} disabled={bookedTimes.length === TIME_SLOTS.length} className="pill-btn bg-primary text-primary-foreground hover:bg-accent hover:text-accent-foreground" data-testid="demo-next-btn">
                     Next: Your details <ArrowRight size={14} className="ml-1.5" />
                   </Button>
                 </div>

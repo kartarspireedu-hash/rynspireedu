@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/context/ThemeContext";
 import { CurrencyProvider } from "@/context/CurrencyContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import TawkChat from "@/components/TawkChat";
+import ScrollToTop from "@/components/ScrollToTop";
 
 import Landing from "@/pages/Landing";
 import Pricing from "@/pages/Pricing";
@@ -32,6 +33,7 @@ function App() {
           <AuthProvider>
             <TawkChat />
             <BrowserRouter>
+              <ScrollToTop />
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/pricing" element={<Pricing />} />

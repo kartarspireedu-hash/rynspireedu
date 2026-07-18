@@ -21,6 +21,16 @@ export default function TawkChat() {
     window.Tawk_API = window.Tawk_API || {};
     window.Tawk_LoadStart = new Date();
 
+    // Move the chat bubble up from the bottom-right corner so it sits closer
+    // to the middle of the right edge, clearing the "Book Free Demo" sticky
+    // bar on mobile and the floating CTA on desktop.
+    window.Tawk_API.customStyle = {
+      visibility: {
+        desktop: { position: "br", xOffset: 20, yOffset: 220 },
+        mobile: { position: "br", xOffset: 10, yOffset: 160 },
+      },
+    };
+
     // Fires when a visitor submits the pre-chat form (name/email/etc).
     window.Tawk_API.onPrechatSubmit = function (data) {
       try {
