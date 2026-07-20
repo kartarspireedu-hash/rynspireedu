@@ -11,8 +11,11 @@ import { PLANS } from "@/lib/plans";
 import api from "@/lib/api";
 import { openRazorpayCheckout } from "@/lib/razorpay";
 
-// Razorpay treats INR as INR-only for domestic merchants unless International is enabled.
-const RAZORPAY_SUPPORTED_CURRENCIES = ["INR", "USD", "AUD", "NZD", "GBP", "EUR", "CAD", "SGD", "AED", "CNY"];
+// Note: since we no longer offer INR pricing to visitors, everyone is charged
+// in one of these currencies. If your Razorpay account does not have
+// International Payments enabled, only USD may work reliably — talk to
+// Razorpay support if non-INR charges fail with "authentication failed".
+const RAZORPAY_SUPPORTED_CURRENCIES = ["USD", "AUD", "NZD", "GBP", "EUR", "CAD", "SGD", "AED", "CNY"];
 
 export default function Checkout() {
   const { state } = useLocation();
@@ -44,7 +47,7 @@ export default function Checkout() {
       toast.error("Please accept the Payment Terms & Conditions to continue.");
       return;
     }
-    const chargeCurrency = RAZORPAY_SUPPORTED_CURRENCIES.includes(currency) ? currency : "INR";
+    const chargeCurrency = RAZORPAY_SUPPORTED_CURRENCIES.includes(currency) ? currency : "USD";
     const fx = FX[chargeCurrency];
     const minorAmount = Math.round(plan.priceUsd * fx.rate * 100);
     setBusy(true);

@@ -182,22 +182,29 @@ class UserOut(BaseModel):
     created_at: str
 
 class DemoBookingIn(BaseModel):
-    name: str = Field(min_length=2, max_length=80)
+    parent_name: str = Field(min_length=2, max_length=80)
+    student_name: str = Field(min_length=2, max_length=80)
     email: EmailStr
     phone: str = Field(min_length=5, max_length=25)
     country: str
+    country_other: Optional[str] = Field(default=None, max_length=60)
     city: str
+    city_other: Optional[str] = Field(default=None, max_length=60)
     student_class: str = Field(description="e.g. Year 8, Grade 10, Kindergarten")
     subject: str
+    subject_other: Optional[str] = Field(default=None, max_length=60)
     demo_date: str = Field(description="YYYY-MM-DD")
     demo_time: str = Field(description="HH:MM (24h)")
     timezone: Optional[str] = "Australia/Sydney"
     additional_notes: Optional[str] = Field(default="", max_length=1000)
     currency: Optional[str] = "USD"
+    accepted_terms: bool = False
 
 class DemoBookingOut(BaseModel):
     id: str
     name: str
+    parent_name: Optional[str] = None
+    student_name: Optional[str] = None
     email: EmailStr
     phone: str
     country: str
@@ -214,7 +221,7 @@ class DemoBookingOut(BaseModel):
 class CreateOrderIn(BaseModel):
     plan_key: str
     amount: int = Field(gt=0, description="Amount in the smallest currency unit (paise/cents)")
-    currency: str = "INR"
+    currency: str = "USD"
     receipt: Optional[str] = None
     customer_name: Optional[str] = None
     customer_email: Optional[EmailStr] = None
@@ -474,20 +481,33 @@ async def demo_availability(date: str):
 
 @api_router.post("/demos", response_model=DemoBookingOut)
 async def create_demo(payload: DemoBookingIn, background: BackgroundTasks):
+    if not payload.accepted_terms:
+        raise HTTPException(status_code=400, detail="Please accept the Terms & Conditions to book a demo.")
+
+    demo_dt = datetime.strptime(payload.demo_date, "%Y-%m-%d")
+    if demo_dt.weekday() == 6:  # Monday=0 ... Sunday=6
+        raise HTTPException(status_code=400, detail="We're closed on Sundays — please choose another day.")
+
     existing = await db.demo_bookings.find_one({"demo_date": payload.demo_date, "demo_time": payload.demo_time})
     if existing:
         raise HTTPException(status_code=409, detail="That time slot was just booked by someone else — please pick another time.")
 
+    country = (payload.country_other or "").strip() if payload.country == "Other" and payload.country_other else payload.country
+    city = (payload.city_other or "").strip() if payload.city == "Other" and payload.city_other else payload.city
+    subject = (payload.subject_other or "").strip() if payload.subject == "Other" and payload.subject_other else payload.subject
+
     bid = str(uuid.uuid4())
     doc = {
         "id": bid,
-        "name": payload.name.strip(),
+        "name": payload.student_name.strip(),
+        "parent_name": payload.parent_name.strip(),
+        "student_name": payload.student_name.strip(),
         "email": payload.email.lower().strip(),
         "phone": payload.phone.strip(),
-        "country": payload.country,
-        "city": payload.city,
+        "country": country,
+        "city": city,
         "student_class": payload.student_class,
-        "subject": payload.subject,
+        "subject": subject,
         "demo_date": payload.demo_date,
         "demo_time": payload.demo_time,
         "timezone": payload.timezone,
@@ -504,6 +524,21 @@ async def create_demo(payload: DemoBookingIn, background: BackgroundTasks):
     background.add_task(_send_to_google_sheet_sync, doc, "Demo Bookings")
 
     return DemoBookingOut(**{k: v for k, v in doc.items() if k != "_id" and k != "currency"})
+
+class DemoStatusUpdate(BaseModel):
+    status: str = Field(pattern="^(pending|confirmed|completed|cancelled)$")
+
+@api_router.patch("/admin/demos/{demo_id}", response_model=DemoBookingOut)
+async def update_demo_status(demo_id: str, payload: DemoStatusUpdate, background: BackgroundTasks,
+                              _: dict = Depends(require_role("admin", "owner", "coordinator"))):
+    doc = await db.demo_bookings.find_one({"id": demo_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    await db.demo_bookings.update_one({"id": demo_id}, {"$set": {"status": payload.status}})
+    doc["status"] = payload.status
+    clean = {k: v for k, v in doc.items() if k != "_id"}
+    background.add_task(_send_to_google_sheet_sync, {**clean, "action": "update"}, "Demo Bookings")
+    return DemoBookingOut(**{k: v for k, v in clean.items() if k != "currency"})
 
 @api_router.get("/admin/demos", response_model=List[DemoBookingOut])
 async def list_demos(_: dict = Depends(require_role("admin", "owner", "coordinator"))):

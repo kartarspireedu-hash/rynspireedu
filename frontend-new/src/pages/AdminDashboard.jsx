@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
 import { LayoutDashboard, Users, GraduationCap, Calendar, ShieldCheck, DownloadCloud, CreditCard, Eye, Mail, Phone, MapPin, Clock, FileText } from "lucide-react";
 
 const nav = [{ to: "/app/admin", label: "Overview", icon: LayoutDashboard, end: true }];
@@ -24,6 +26,22 @@ export default function AdminDashboard() {
   const [demos, setDemos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null); // demo booking currently open
+  const [statusBusy, setStatusBusy] = useState(false);
+
+  const updateDemoStatus = async (newStatus) => {
+    if (!selected) return;
+    setStatusBusy(true);
+    try {
+      const { data } = await api.patch(`/admin/demos/${selected.id}`, { status: newStatus });
+      setDemos((prev) => prev.map((d) => (d.id === data.id ? data : d)));
+      setSelected(data);
+      toast.success(`Status updated to "${newStatus}" — synced to Google Sheet.`);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Could not update status");
+    } finally {
+      setStatusBusy(false);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -218,9 +236,23 @@ export default function AdminDashboard() {
                 </div>
                 <div className="text-xs text-muted-foreground">Booked {new Date(selected.created_at).toLocaleString()}</div>
               </div>
-              <div className="mt-4 flex flex-wrap gap-2 justify-end">
-                <Button asChild variant="outline" className="pill-btn" data-testid="demo-email-link"><a href={`mailto:${selected.email}`}><Mail size={12} className="mr-1" /> Email</a></Button>
-                <Button asChild className="pill-btn bg-primary text-primary-foreground hover:bg-accent hover:text-accent-foreground" data-testid="demo-call-link"><a href={`tel:${selected.phone}`}><Phone size={12} className="mr-1" /> Call</a></Button>
+              <div className="mt-4 flex flex-wrap items-center gap-2 justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Status</span>
+                  <Select value={selected.status} onValueChange={updateDemoStatus} disabled={statusBusy}>
+                    <SelectTrigger className="w-36 rounded-xl h-9" data-testid="demo-status-select"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="confirmed">Confirmed</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-wrap gap-2 justify-end">
+                  <Button asChild variant="outline" className="pill-btn" data-testid="demo-email-link"><a href={`mailto:${selected.email}`}><Mail size={12} className="mr-1" /> Email</a></Button>
+                  <Button asChild className="pill-btn bg-primary text-primary-foreground hover:bg-accent hover:text-accent-foreground" data-testid="demo-call-link"><a href={`tel:${selected.phone}`}><Phone size={12} className="mr-1" /> Call</a></Button>
+                </div>
               </div>
             </>
           )}

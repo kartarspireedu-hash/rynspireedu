@@ -79,7 +79,7 @@ export default function Landing() {
             </Badge>
 
             <h1 className="mt-6 font-display text-4xl sm:text-5xl lg:text-6xl leading-[1.05] tracking-tight max-w-4xl mx-auto">
-              A <span className="gold-underline">tutor</span> as devoted<br className="hidden sm:inline" />
+              A <span className="gold-underline">tutor</span> as devoted <br className="hidden sm:inline" />
               to your child as you are.
             </h1>
             <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">

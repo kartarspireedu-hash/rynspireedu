@@ -17,18 +17,20 @@ export default function About() {
         </h1>
         <div className="mt-10 space-y-6 text-lg leading-relaxed text-muted-foreground">
           <p>
-            RynSpireEdu — a brand of <strong className="text-foreground">SpireEdu Services</strong> — was founded on a simple belief:
-            the future of education is deeply personal. We do not sell recorded courses. We do not run a marketplace of freelancers.
-            We build long-term relationships between one student and one exceptional tutor.
+            RynSpireEdu was founded on a simple belief: the future of education is deeply personal.
+            We do not sell recorded courses. We do not run a marketplace of freelancers. We build
+            long-term relationships between one student and one exceptional tutor.
           </p>
           <p>
-            Our tutors are curated, trained and supported by an academic panel that has taught in leading schools across
-            Australia, New Zealand, Singapore and the United Kingdom. Every plan is bespoke. Every parent is kept in the loop.
+            Our tutors are curated, trained and supported by an academic panel with experience teaching
+            in leading schools. Every plan is bespoke. Every parent is kept in the loop, with weekly
+            progress updates and full visibility into how their child is learning.
           </p>
           <p>
-            We start with K–12 in Australia and New Zealand, expanding to the USA, Canada, UK, Singapore and the Middle East.
-            Beyond schooling, we grow into competitive exams, language learning, coding and adult upskilling —
-            with the same commitment to premium, human-first teaching.
+            Today, RynSpireEdu is focused on delivering an outstanding K–12 tutoring experience for
+            families across <strong className="text-foreground">Australia and New Zealand</strong>.
+            As we grow, we plan to bring the same 1-to-1, human-first approach to students in the
+            <strong className="text-foreground"> United States, Canada, the Middle East, the United Kingdom and Europe</strong>.
           </p>
           <p className="text-sm">
             For anything — questions, feedback, partnerships — email <a href="mailto:care@rynspireedu.com" className="text-primary hover:underline">care@rynspireedu.com</a>. You&apos;ll hear back within 24 hours.

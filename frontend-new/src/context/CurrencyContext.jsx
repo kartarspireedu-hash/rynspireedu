@@ -14,7 +14,6 @@ export const FX = {
   GBP: { rate: 0.79,  symbol: "£",    label: "British Pound",       locale: "en-GB", flag: "🇬🇧" },
   EUR: { rate: 0.92,  symbol: "€",    label: "Euro",                locale: "en-IE", flag: "🇪🇺" },
   CAD: { rate: 1.36,  symbol: "$",    label: "Canadian Dollar",     locale: "en-CA", flag: "🇨🇦" },
-  INR: { rate: 83.5,  symbol: "₹",    label: "Indian Rupee",        locale: "en-IN", flag: "🇮🇳" },
   AED: { rate: 3.67,  symbol: "AED ", label: "UAE Dirham",          locale: "en-AE", flag: "🇦🇪" },
   SGD: { rate: 1.34,  symbol: "$",    label: "Singapore Dollar",    locale: "en-SG", flag: "🇸🇬" },
   CNY: { rate: 7.20,  symbol: "¥",    label: "Chinese Yuan",        locale: "zh-CN", flag: "🇨🇳" },
@@ -23,7 +22,7 @@ export const FX = {
 export const COUNTRY_TO_CURRENCY = {
   US: "USD", AU: "AUD", NZ: "NZD", GB: "GBP", UK: "GBP",
   IE: "EUR", DE: "EUR", FR: "EUR", ES: "EUR", IT: "EUR", NL: "EUR", PT: "EUR",
-  CA: "CAD", IN: "INR", AE: "AED", SG: "SGD", CN: "CNY",
+  CA: "CAD", IN: "USD", AE: "AED", SG: "SGD", CN: "CNY",
 };
 
 const CurrencyContext = createContext(null);
