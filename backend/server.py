@@ -17,6 +17,7 @@ import bcrypt
 import jwt
 from email.message import EmailMessage
 from datetime import datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
 from typing import List, Optional, Literal
 
 import razorpay
@@ -25,7 +26,7 @@ from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Respons
 from fastapi.responses import StreamingResponse
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel, Field, EmailStr, ConfigDict
+from pydantic import BaseModel, Field, EmailStr, ConfigDict, field_validator
 
 # ------------------------------------------------------------------
 # App / DB / Logger
@@ -39,6 +40,43 @@ api_router = APIRouter(prefix="/api")
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("rynspireedu")
+
+# Shared validation helpers (mirrors frontend lib/validators.js) — server-side
+# is the source of truth since client-side checks can always be bypassed.
+DISPOSABLE_EMAIL_DOMAINS = {
+    "mailinator.com", "tempmail.com", "temp-mail.org", "10minutemail.com",
+    "guerrillamail.com", "guerrillamail.info", "guerrillamail.biz", "guerrillamail.de",
+    "yopmail.com", "throwawaymail.com", "getnada.com", "trashmail.com",
+    "fakeinbox.com", "sharklasers.com", "dispostable.com", "mailnesia.com",
+    "maildrop.cc", "mintemail.com", "mytemp.email", "moakt.com",
+    "emailondeck.com", "spamgourmet.com", "mailcatch.com", "tempinbox.com",
+    "discard.email", "tempr.email", "example.com", "test.com",
+}
+
+def _reject_disposable_email(v: str) -> str:
+    domain = v.split("@")[-1].lower()
+    if domain in DISPOSABLE_EMAIL_DOMAINS:
+        raise ValueError("Please use a permanent email address (temporary/disposable emails aren't accepted).")
+    return v
+
+def _validate_phone_digits(v: str) -> str:
+    digits = "".join(ch for ch in v if ch.isdigit())
+    if not (7 <= len(digits) <= 15):
+        raise ValueError("Please enter a valid phone number (7-15 digits, with country code).")
+    return v
+
+def _to_ist_display(date_str: str, time_str: str, tz_name: str) -> str:
+    """Convert a demo's local date/time/timezone into an India-time display
+    string, so the team (based in India) can assign a tutor at the right
+    real-world moment without doing the timezone math by hand."""
+    try:
+        local_dt = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M").replace(
+            tzinfo=ZoneInfo(tz_name or "Australia/Sydney")
+        )
+        ist_dt = local_dt.astimezone(ZoneInfo("Asia/Kolkata"))
+        return ist_dt.strftime("%Y-%m-%d %H:%M IST")
+    except Exception:
+        return ""
 
 # ------------------------------------------------------------------
 # Security headers (applied to every response)
@@ -199,6 +237,16 @@ class DemoBookingIn(BaseModel):
     additional_notes: Optional[str] = Field(default="", max_length=1000)
     currency: Optional[str] = "USD"
     accepted_terms: bool = False
+
+    @field_validator("email")
+    @classmethod
+    def _email_not_disposable(cls, v):
+        return _reject_disposable_email(v)
+
+    @field_validator("phone")
+    @classmethod
+    def _phone_valid(cls, v):
+        return _validate_phone_digits(v)
 
 class DemoBookingOut(BaseModel):
     id: str
@@ -514,6 +562,7 @@ async def create_demo(payload: DemoBookingIn, background: BackgroundTasks):
         "additional_notes": payload.additional_notes or "",
         "currency": payload.currency,
         "status": "pending",
+        "ist_time": _to_ist_display(payload.demo_date, payload.demo_time, payload.timezone),
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.demo_bookings.insert_one(doc)
@@ -568,6 +617,18 @@ class ContactIn(BaseModel):
     email: EmailStr
     phone: str | None = Field(default=None, max_length=30)
     message: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("email")
+    @classmethod
+    def _email_not_disposable(cls, v):
+        return _reject_disposable_email(v)
+
+    @field_validator("phone")
+    @classmethod
+    def _phone_valid(cls, v):
+        if v:
+            return _validate_phone_digits(v)
+        return v
 
 @api_router.post("/contact")
 async def contact(payload: ContactIn, background: BackgroundTasks):

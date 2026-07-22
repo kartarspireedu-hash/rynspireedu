@@ -43,7 +43,7 @@ const businessSteps = [
   { icon: Users, t: "Parents enrol", d: "Families choose a plan that fits their child's goals — monthly, quarterly or yearly." },
   { icon: HeartHandshake, t: "We match a tutor", d: "Our academic panel personally selects the best tutor for personality, curriculum and pace." },
   { icon: Video, t: "Live lessons run", d: "Every week, your child meets their tutor 1-to-1 online — homework, feedback, and reports flow." },
-  { icon: Coins, t: "Everyone wins", d: "Tutors are paid fairly, coordinators are supported, and the business grows sustainably for owners." },
+  { icon: Coins, t: "Everyone wins", d: "Great tutors are rewarded for their craft, our coordinators are backed with real support, and the business scales in a way that lasts." },
 ];
 
 function Eyebrow({ children }) {
@@ -97,7 +97,8 @@ export default function Landing() {
               to your child as you are.
             </h1>
             <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Live, one-to-one lessons designed around your child. Personalised study plans, weekly progress reports, and full parent transparency — built for Australia, New Zealand and beyond.
+              Live, one-to-one lessons designed around your child. Personalised study plans, weekly progress reports, and full parent transparency<br className="hidden sm:inline" />
+              — built for Australia, New Zealand and beyond.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3 justify-center">
@@ -124,7 +125,6 @@ export default function Landing() {
 
       {/* SUBJECTS */}
       <section className="container-x py-16 sm:py-20 text-center border-t border-border">
-        <Eyebrow>Subjects</Eyebrow>
         <h2 className="mt-3 font-display text-3xl sm:text-4xl lg:text-5xl">Every subject. Every stage.</h2>
         <p className="mt-4 text-muted-foreground max-w-2xl mx-auto leading-relaxed">
           Specialists for HSC, VCE, NCEA, IB, IGCSE, A-Levels, and US Common Core — from foundational literacy to competitive exams.
@@ -183,7 +183,7 @@ export default function Landing() {
           <Eyebrow>Who we build for</Eyebrow>
           <h2 className="mt-3 font-display text-3xl sm:text-4xl lg:text-5xl max-w-3xl mx-auto">Built around students — funded by parents who care.</h2>
           <p className="mt-4 text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            RynSpireEdu is not a marketplace. Parents invest in their children&apos;s learning, we deliver premium 1-to-1 lessons, and we pay our tutors and team fairly to grow a sustainable business.
+            We&apos;re not a freelancer marketplace. Every family that joins us is investing directly in their child&apos;s progress, and in return we run a real teaching studio — carefully matched tutors, a supported team, and a business built to last for the long run.
           </p>
           <div className="mt-14 grid sm:grid-cols-2 lg:grid-cols-4 gap-5 text-left">
             {businessSteps.map((s, i) => (

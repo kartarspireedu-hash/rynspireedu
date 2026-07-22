@@ -68,8 +68,8 @@ export default function LiveStudentTicker() {
   const s = studentAt(start + i);
 
   return (
-    <div className="mx-auto max-w-3xl rounded-full border border-border bg-card/70 backdrop-blur-md px-5 py-2.5 flex items-center gap-4 shadow-[0_8px_32px_rgba(10,25,47,0.06)]" data-testid="live-student-ticker">
-      <span className="hidden sm:flex items-center gap-1.5 text-xs uppercase tracking-[0.2em] text-accent shrink-0">
+    <div className="mx-auto max-w-3xl rounded-3xl sm:rounded-full border border-border bg-card/70 backdrop-blur-md px-4 sm:px-5 py-3 sm:py-2.5 flex flex-wrap items-center justify-center sm:justify-start gap-x-3 gap-y-1.5 shadow-[0_8px_32px_rgba(10,25,47,0.06)]" data-testid="live-student-ticker">
+      <span className="flex items-center gap-1.5 text-xs uppercase tracking-[0.2em] text-accent shrink-0">
         <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
         Live
       </span>
@@ -80,17 +80,13 @@ export default function LiveStudentTicker() {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -6, opacity: 0 }}
           transition={{ duration: 0.35 }}
-          className="flex-1 flex items-center gap-3 text-sm min-w-0"
+          className="flex-1 flex flex-wrap items-center justify-center sm:justify-start gap-x-3 gap-y-1 text-sm min-w-0"
         >
-          <User size={14} className="text-accent shrink-0" />
-          <span className="font-medium truncate">{s.name}</span>
-          <span className="hidden sm:inline text-muted-foreground">·</span>
-          <span className="hidden sm:inline text-muted-foreground text-xs">{s.year}</span>
-          <span className="hidden md:inline text-muted-foreground">·</span>
-          <span className="hidden md:inline-flex items-center gap-1 text-xs text-muted-foreground"><BookOpen size={12} /> {s.subject}</span>
-          <span className="hidden lg:inline text-muted-foreground">·</span>
-          <span className="hidden lg:inline-flex items-center gap-1 text-xs text-muted-foreground"><GraduationCap size={12} /> {s.tutor}</span>
-          <span className="ml-auto text-[10px] uppercase tracking-[0.15em] text-muted-foreground shrink-0">{s.city}</span>
+          <span className="flex items-center gap-1.5"><User size={14} className="text-accent shrink-0" /><span className="font-medium">{s.name}</span></span>
+          <span className="text-muted-foreground text-xs">{s.year}</span>
+          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><BookOpen size={12} /> {s.subject}</span>
+          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><GraduationCap size={12} /> {s.tutor}</span>
+          <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground sm:ml-auto">{s.city}</span>
         </motion.div>
       </AnimatePresence>
     </div>

@@ -12,6 +12,7 @@ import { useCurrency, FX } from "@/context/CurrencyContext";
 import { PLANS } from "@/lib/plans";
 import api from "@/lib/api";
 import { openRazorpayCheckout } from "@/lib/razorpay";
+import { validateEmail } from "@/lib/validators";
 
 // Note: since we no longer offer INR pricing to visitors, everyone is charged
 // in one of these currencies. If your Razorpay account does not have
@@ -47,8 +48,13 @@ export default function Checkout() {
   }
 
   const payNow = async () => {
-    if (!customerName.trim() || !customerEmail.trim()) {
-      toast.error("Please enter your name and email so we can send your receipt.");
+    if (!customerName.trim()) {
+      toast.error("Please enter your name.");
+      return;
+    }
+    const emailError = validateEmail(customerEmail);
+    if (emailError) {
+      toast.error(emailError);
       return;
     }
     if (!agreed) {
@@ -138,7 +144,7 @@ export default function Checkout() {
               <Input id="checkout-name" required value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="mt-1.5 rounded-xl" data-testid="checkout-name" />
             </div>
             <div>
-              <Label htmlFor="checkout-email">Email (for your receipt) *</Label>
+              <Label htmlFor="checkout-email">Email *</Label>
               <Input id="checkout-email" required type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} className="mt-1.5 rounded-xl" data-testid="checkout-email" />
             </div>
           </div>

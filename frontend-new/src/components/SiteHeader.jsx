@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import BrandMark from "@/components/BrandMark";
 import CurrencySwitcher from "@/components/CurrencySwitcher";
+import useHasPurchased from "@/lib/useHasPurchased";
 
 const nav = [
   { to: "/", label: "Home" },
@@ -19,6 +20,7 @@ export default function SiteHeader() {
   const { theme, toggle } = useTheme();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const hasPurchased = useHasPurchased();
 
   const dashboardPath =
     user?.role === "student" || user?.role === "parent" ? "/app/student"
@@ -58,14 +60,16 @@ export default function SiteHeader() {
             {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
           </button>
 
-          <Button
-            asChild
-            size="sm"
-            className="pill-btn hidden sm:inline-flex bg-primary text-primary-foreground hover:bg-accent hover:text-accent-foreground"
-            data-testid="header-demo-btn"
-          >
-            <Link to="/book-demo">Book Free Demo</Link>
-          </Button>
+          {!hasPurchased && (
+            <Button
+              asChild
+              size="sm"
+              className="pill-btn hidden sm:inline-flex bg-primary text-primary-foreground hover:bg-accent hover:text-accent-foreground"
+              data-testid="header-demo-btn"
+            >
+              <Link to="/book-demo">Book Free Demo</Link>
+            </Button>
+          )}
 
           {user && (
             <Button asChild variant="outline" size="sm" className="pill-btn hidden md:inline-flex" data-testid="header-dashboard-btn">
@@ -107,9 +111,11 @@ export default function SiteHeader() {
             <div className="flex items-center gap-2 pt-2 border-t border-border">
               <CurrencySwitcher compact />
             </div>
-            <Button asChild size="sm" className="pill-btn bg-primary text-primary-foreground hover:bg-accent hover:text-accent-foreground w-full" onClick={() => setMobileOpen(false)}>
-              <Link to="/book-demo">Book Free 25-min Demo</Link>
-            </Button>
+            {!hasPurchased && (
+              <Button asChild size="sm" className="pill-btn bg-primary text-primary-foreground hover:bg-accent hover:text-accent-foreground w-full" onClick={() => setMobileOpen(false)}>
+                <Link to="/book-demo">Book Free 25-min Demo</Link>
+              </Button>
+            )}
           </div>
         </div>
       )}

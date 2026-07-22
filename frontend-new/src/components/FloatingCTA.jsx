@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, X, ArrowRight } from "lucide-react";
+import useHasPurchased from "@/lib/useHasPurchased";
 
 export default function FloatingCTA() {
   const [visible, setVisible] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const location = useLocation();
+  const hasPurchased = useHasPurchased();
 
   useEffect(() => {
     const onScroll = () => {
@@ -18,8 +20,8 @@ export default function FloatingCTA() {
     return () => window.removeEventListener("scroll", onScroll);
   }, [dismissed]);
 
-  // Hide on booking + auth pages
-  if (location.pathname.startsWith("/book-demo") || location.pathname === "/login" || location.pathname === "/register") return null;
+  // Hide on booking + auth pages, and for visitors who've already purchased
+  if (hasPurchased || location.pathname.startsWith("/book-demo") || location.pathname === "/login" || location.pathname === "/register") return null;
 
   return (
     <AnimatePresence>

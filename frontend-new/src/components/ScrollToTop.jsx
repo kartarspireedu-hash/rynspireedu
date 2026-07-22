@@ -11,7 +11,17 @@ export default function ScrollToTop() {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    window.scrollTo(0, 0);
+    const scrollNow = () => {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+    scrollNow();
+    // Mobile menus sometimes hold a scroll-lock for a moment after navigation;
+    // a follow-up scroll on the next frame (and a short delay) catches that.
+    const raf = requestAnimationFrame(scrollNow);
+    const t = setTimeout(scrollNow, 60);
+    return () => { cancelAnimationFrame(raf); clearTimeout(t); };
   }, [pathname]);
 
   return null;

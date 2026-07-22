@@ -1,4 +1,5 @@
 import { useLocation, Link } from "react-router-dom";
+import { useEffect } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,10 @@ export default function PaymentSuccess() {
   const planName = state?.planName || "your plan";
   const paymentId = state?.paymentId || "";
   const amountDisplay = state?.amountDisplay || "";
+
+  useEffect(() => {
+    try { localStorage.setItem("rse_has_purchased", "1"); } catch {}
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col">

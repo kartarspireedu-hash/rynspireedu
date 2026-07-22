@@ -1,9 +1,11 @@
 import { Link, useLocation } from "react-router-dom";
 import { Sparkles } from "lucide-react";
+import useHasPurchased from "@/lib/useHasPurchased";
 
 export default function MobileStickyBar() {
   const location = useLocation();
-  if (location.pathname.startsWith("/book-demo") || location.pathname === "/login" || location.pathname === "/register" || location.pathname.startsWith("/app/") || location.pathname.startsWith("/session/")) return null;
+  const hasPurchased = useHasPurchased();
+  if (hasPurchased || location.pathname.startsWith("/book-demo") || location.pathname === "/login" || location.pathname === "/register" || location.pathname.startsWith("/app/") || location.pathname.startsWith("/session/")) return null;
 
   return (
     <div className="mobile-sticky lg:hidden px-4 py-3" data-testid="mobile-sticky-bar">

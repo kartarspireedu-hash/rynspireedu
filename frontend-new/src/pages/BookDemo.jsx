@@ -16,24 +16,24 @@ import { Calendar as CalendarComp } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ArrowLeft, ArrowRight, CalendarIcon, CheckCircle2, Sparkles, Clock, Mail } from "lucide-react";
 import api from "@/lib/api";
+import { validateEmail, validatePhone } from "@/lib/validators";
 
-const COUNTRIES = [
-  "Australia", "New Zealand", "United States", "United Kingdom", "Canada",
-  "Singapore", "India", "United Arab Emirates", "Ireland", "Germany", "Other",
+function isoToFlag(iso2) {
+  if (!iso2 || iso2.length !== 2) return "🌐";
+  return String.fromCodePoint(...[...iso2.toUpperCase()].map((c) => 127397 + c.charCodeAt(0)));
+}
+
+// We only currently serve Australia & New Zealand — shown selectable.
+// Other countries are shown for context but disabled (visual only, per request).
+const COUNTRIES_ENABLED = ["Australia", "New Zealand"];
+const COUNTRIES_DISABLED = [
+  "United States", "United Kingdom", "Canada", "Singapore", "India",
+  "United Arab Emirates", "Ireland", "Germany",
 ];
 
 const CITIES_BY_COUNTRY = {
   "Australia": ["Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide", "Canberra", "Gold Coast", "Hobart", "Darwin", "Other"],
   "New Zealand": ["Auckland", "Wellington", "Christchurch", "Hamilton", "Tauranga", "Dunedin", "Palmerston North", "Other"],
-  "United States": ["New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "San Francisco", "Seattle", "Boston", "Other"],
-  "United Kingdom": ["London", "Manchester", "Birmingham", "Leeds", "Glasgow", "Edinburgh", "Bristol", "Other"],
-  "Canada": ["Toronto", "Vancouver", "Montreal", "Calgary", "Ottawa", "Edmonton", "Other"],
-  "Singapore": ["Singapore", "Other"],
-  "India": ["Mumbai", "Delhi", "Bengaluru", "Hyderabad", "Chennai", "Kolkata", "Pune", "Ahmedabad", "Chandigarh", "Ludhiana", "Amritsar", "Other"],
-  "United Arab Emirates": ["Dubai", "Abu Dhabi", "Sharjah", "Ajman", "Other"],
-  "Ireland": ["Dublin", "Cork", "Galway", "Limerick", "Other"],
-  "Germany": ["Berlin", "Munich", "Hamburg", "Frankfurt", "Other"],
-  "Other": ["Other"],
 };
 
 const CLASSES = [
@@ -52,10 +52,41 @@ const TIME_SLOTS = [
   "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00",
 ];
 
-// Australia & New Zealand are our primary service area — shown first and
-// highlighted. All other timezones stay available but visually de-emphasised.
+// Australia & New Zealand are the only selectable timezones — shown first.
+// Other zones are visible for reference only and cannot be selected.
 const TZ_PRIMARY = ["Australia/Sydney", "Australia/Melbourne", "Australia/Perth", "Australia/Brisbane", "Australia/Adelaide", "Pacific/Auckland"];
 const TZ_OTHER = ["Asia/Kolkata", "Asia/Singapore", "Asia/Dubai", "Europe/London", "Europe/Dublin", "Europe/Berlin", "America/New_York", "America/Los_Angeles", "America/Toronto"];
+
+// Phone country/dial codes — default falls back to Australia (+61)
+const DIAL_CODES = [
+  { iso: "AU", dial: "+61", name: "Australia" },
+  { iso: "NZ", dial: "+64", name: "New Zealand" },
+  { iso: "US", dial: "+1", name: "United States" },
+  { iso: "GB", dial: "+44", name: "United Kingdom" },
+  { iso: "CA", dial: "+1", name: "Canada" },
+  { iso: "IN", dial: "+91", name: "India" },
+  { iso: "SG", dial: "+65", name: "Singapore" },
+  { iso: "AE", dial: "+971", name: "United Arab Emirates" },
+  { iso: "IE", dial: "+353", name: "Ireland" },
+  { iso: "DE", dial: "+49", name: "Germany" },
+  { iso: "CN", dial: "+86", name: "China" },
+  { iso: "FR", dial: "+33", name: "France" },
+  { iso: "ZA", dial: "+27", name: "South Africa" },
+  { iso: "MY", dial: "+60", name: "Malaysia" },
+  { iso: "PH", dial: "+63", name: "Philippines" },
+  { iso: "PK", dial: "+92", name: "Pakistan" },
+  { iso: "SA", dial: "+966", name: "Saudi Arabia" },
+];
+
+// Returns wall-clock "now" as it would read on a clock in the given IANA
+// timezone (used only for comparing hour/date fields, not real epoch math).
+function nowInTz(tz) {
+  try {
+    return new Date(new Date().toLocaleString("en-US", { timeZone: tz }));
+  } catch {
+    return new Date();
+  }
+}
 
 function fmtDate(d) {
   return d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
@@ -73,17 +104,30 @@ export default function BookDemo() {
 
   const [form, setForm] = useState({
     parent_name: "", student_name: "", email: "", phone: "",
-    country: "Australia", country_other: "", city: "Sydney", city_other: "",
+    country: "Australia", city: "Sydney", city_other: "",
     student_class: "Grade 8", subject: "Mathematics", subject_other: "",
     additional_notes: "",
   });
+  const [dialCode, setDialCode] = useState("+61");
   const [agreed, setAgreed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [bookingId, setBookingId] = useState("");
   const [bookedTimes, setBookedTimes] = useState([]);
+  const [fieldErrors, setFieldErrors] = useState({});
   const pixelFiredRef = useRef(false);
 
   const dateKey = date.toISOString().slice(0, 10);
+
+  // Pre-fill phone dial code based on visitor's IP, same pattern as currency detection.
+  useEffect(() => {
+    let cancelled = false;
+    api.get("/geo").then(({ data }) => {
+      if (cancelled) return;
+      const match = DIAL_CODES.find((d) => d.iso === data?.country);
+      if (match) setDialCode(match.dial);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -93,12 +137,24 @@ export default function BookDemo() {
     return () => { cancelled = true; };
   }, [dateKey]);
 
+  // A tutor needs at least an hour's notice — if the selected date is "today"
+  // in the chosen timezone, hide any slot less than 1 hour from now.
+  const pastTimesToday = useMemo(() => {
+    const tzNow = nowInTz(tz);
+    const todayKeyInTz = `${tzNow.getFullYear()}-${String(tzNow.getMonth() + 1).padStart(2, "0")}-${String(tzNow.getDate()).padStart(2, "0")}`;
+    if (todayKeyInTz !== dateKey) return [];
+    const cutoffHour = tzNow.getHours() + 1;
+    return TIME_SLOTS.filter((t) => parseInt(t.split(":")[0], 10) < cutoffHour);
+  }, [tz, dateKey]);
+
+  const unavailableTimes = useMemo(() => Array.from(new Set([...bookedTimes, ...pastTimesToday])), [bookedTimes, pastTimesToday]);
+
   useEffect(() => {
-    if (bookedTimes.includes(time)) {
-      const firstFree = TIME_SLOTS.find((t) => !bookedTimes.includes(t));
+    if (unavailableTimes.includes(time)) {
+      const firstFree = TIME_SLOTS.find((t) => !unavailableTimes.includes(t));
       if (firstFree) setTime(firstFree);
     }
-  }, [bookedTimes]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [unavailableTimes]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (step === 4 && !pixelFiredRef.current) {
@@ -120,13 +176,26 @@ export default function BookDemo() {
     return next;
   });
 
-  const displayCountry = form.country === "Other" && form.country_other ? form.country_other : form.country;
+  const displayCountry = form.country;
   const displayCity = form.city === "Other" && form.city_other ? form.city_other : form.city;
   const displaySubject = form.subject === "Other" && form.subject_other ? form.subject_other : form.subject;
 
+  const validateDetails = () => {
+    const errs = {};
+    if (form.parent_name.trim().length < 2) errs.parent_name = "Please enter the parent's name.";
+    if (form.student_name.trim().length < 2) errs.student_name = "Please enter the student's name.";
+    const emailErr = validateEmail(form.email);
+    if (emailErr) errs.email = emailErr;
+    const phoneErr = validatePhone(`${dialCode}${form.phone}`);
+    if (phoneErr) errs.phone = phoneErr;
+    if (form.city === "Other" && !form.city_other.trim()) errs.city_other = "Please specify your city.";
+    if (form.subject === "Other" && !form.subject_other.trim()) errs.subject_other = "Please specify the subject.";
+    setFieldErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const detailsValid = form.parent_name.trim().length >= 2 && form.student_name.trim().length >= 2
-    && form.email.trim() && form.phone.trim()
-    && (form.country !== "Other" || form.country_other.trim())
+    && !validateEmail(form.email) && !validatePhone(`${dialCode}${form.phone}`)
     && (form.city !== "Other" || form.city_other.trim())
     && (form.subject !== "Other" || form.subject_other.trim());
 
@@ -135,6 +204,7 @@ export default function BookDemo() {
     try {
       const payload = {
         ...form,
+        phone: `${dialCode} ${form.phone}`.trim(),
         demo_date: date.toISOString().slice(0, 10),
         demo_time: time,
         timezone: tz,
@@ -227,15 +297,16 @@ export default function BookDemo() {
                       <SelectTrigger className="mt-1.5 rounded-xl" data-testid="demo-time-select"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {TIME_SLOTS.map((t) => (
-                          <SelectItem key={t} value={t} disabled={bookedTimes.includes(t)}>
-                            {t}{bookedTimes.includes(t) ? " · Booked" : ""}
+                          <SelectItem key={t} value={t} disabled={unavailableTimes.includes(t)}>
+                            {t}{bookedTimes.includes(t) ? " · Booked" : (pastTimesToday.includes(t) ? " · Passed" : "")}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    {bookedTimes.length === TIME_SLOTS.length && (
+                    {unavailableTimes.length === TIME_SLOTS.length && (
                       <p className="mt-1.5 text-xs text-destructive">All slots are full on this date — please pick another date.</p>
                     )}
+                    <p className="mt-1.5 text-[11px] text-muted-foreground">Please allow at least 1 hour's notice so we can prepare your tutor.</p>
                   </div>
                   <div className="sm:col-span-2">
                     <Label className="text-xs">Your timezone</Label>
@@ -250,19 +321,20 @@ export default function BookDemo() {
                         </SelectGroup>
                         <SelectSeparator />
                         <SelectGroup>
-                          <SelectLabel className="text-muted-foreground">Other timezones</SelectLabel>
+                          <SelectLabel className="text-muted-foreground">Other timezones (view only)</SelectLabel>
                           {TZ_OTHER.map((t) => (
-                            <SelectItem key={t} value={t} className="text-muted-foreground">{t.replace("_", " ")}</SelectItem>
+                            <SelectItem key={t} value={t} disabled className="text-muted-foreground opacity-50">{t.replace("_", " ")}</SelectItem>
                           ))}
                         </SelectGroup>
                       </SelectContent>
                     </Select>
+                    <p className="mt-1.5 text-[11px] text-muted-foreground">We currently only serve students in Australia &amp; New Zealand timezones.</p>
                   </div>
                 </div>
 
                 <div className="mt-8 flex items-center justify-between">
                   <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Clock size={12} /> 25-minute free demo · No card required</p>
-                  <Button onClick={() => setStep(2)} disabled={bookedTimes.length === TIME_SLOTS.length} className="pill-btn bg-primary text-primary-foreground hover:bg-accent hover:text-accent-foreground" data-testid="demo-next-btn">
+                  <Button onClick={() => setStep(2)} disabled={unavailableTimes.length === TIME_SLOTS.length} className="pill-btn bg-primary text-primary-foreground hover:bg-accent hover:text-accent-foreground" data-testid="demo-next-btn">
                     Next: Your details <ArrowRight size={14} className="ml-1.5" />
                   </Button>
                 </div>
@@ -281,30 +353,49 @@ export default function BookDemo() {
                   <div>
                     <Label htmlFor="parent_name">Parent name *</Label>
                     <Input id="parent_name" required value={form.parent_name} onChange={(e) => setField("parent_name", e.target.value)} className="mt-1.5 rounded-xl" data-testid="demo-parent-name" />
+                    {fieldErrors.parent_name && <p className="mt-1 text-xs text-destructive">{fieldErrors.parent_name}</p>}
                   </div>
                   <div>
                     <Label htmlFor="student_name">Student name *</Label>
                     <Input id="student_name" required value={form.student_name} onChange={(e) => setField("student_name", e.target.value)} className="mt-1.5 rounded-xl" data-testid="demo-student-name" />
+                    {fieldErrors.student_name && <p className="mt-1 text-xs text-destructive">{fieldErrors.student_name}</p>}
                   </div>
                   <div>
-                    <Label htmlFor="phone">Phone number (with country code) *</Label>
-                    <Input id="phone" required inputMode="tel" placeholder="+61 400 000 000" value={form.phone} onChange={(e) => setField("phone", e.target.value)} className="mt-1.5 rounded-xl" data-testid="demo-phone" />
+                    <Label htmlFor="phone">Phone number *</Label>
+                    <div className="mt-1.5 flex gap-2">
+                      <Select value={dialCode} onValueChange={setDialCode}>
+                        <SelectTrigger className="rounded-xl w-[6.5rem] shrink-0" data-testid="demo-dial-code"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {DIAL_CODES.map((d) => (
+                            <SelectItem key={d.iso} value={d.dial}>{isoToFlag(d.iso)} {d.dial}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Input id="phone" required inputMode="tel" placeholder="400 000 000" value={form.phone} onChange={(e) => setField("phone", e.target.value)} className="rounded-xl flex-1" data-testid="demo-phone" />
+                    </div>
+                    {fieldErrors.phone && <p className="mt-1 text-xs text-destructive">{fieldErrors.phone}</p>}
                   </div>
                   <div>
                     <Label htmlFor="email">Email *</Label>
                     <Input id="email" required type="email" value={form.email} onChange={(e) => setField("email", e.target.value)} className="mt-1.5 rounded-xl" data-testid="demo-email" />
+                    {fieldErrors.email && <p className="mt-1 text-xs text-destructive">{fieldErrors.email}</p>}
                   </div>
                   <div>
                     <Label>Country *</Label>
                     <Select value={form.country} onValueChange={(v) => setField("country", v)}>
                       <SelectTrigger className="mt-1.5 rounded-xl" data-testid="demo-country"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {COUNTRIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        <SelectGroup>
+                          {COUNTRIES_ENABLED.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        </SelectGroup>
+                        <SelectSeparator />
+                        <SelectGroup>
+                          <SelectLabel className="text-muted-foreground">Coming soon</SelectLabel>
+                          {COUNTRIES_DISABLED.map((c) => <SelectItem key={c} value={c} disabled className="text-muted-foreground opacity-50">{c}</SelectItem>)}
+                        </SelectGroup>
                       </SelectContent>
                     </Select>
-                    {form.country === "Other" && (
-                      <Input className="mt-2 rounded-xl" placeholder="Please specify your country" value={form.country_other} onChange={(e) => setField("country_other", e.target.value)} data-testid="demo-country-other" />
-                    )}
+                    <p className="mt-1.5 text-[11px] text-muted-foreground">We currently only tutor students in Australia &amp; New Zealand.</p>
                   </div>
                   <div>
                     <Label>City *</Label>
@@ -317,6 +408,7 @@ export default function BookDemo() {
                     {form.city === "Other" && (
                       <Input className="mt-2 rounded-xl" placeholder="Please specify your city" value={form.city_other} onChange={(e) => setField("city_other", e.target.value)} data-testid="demo-city-other" />
                     )}
+                    {fieldErrors.city_other && <p className="mt-1 text-xs text-destructive">{fieldErrors.city_other}</p>}
                   </div>
                   <div>
                     <Label>Student class *</Label>
@@ -338,6 +430,7 @@ export default function BookDemo() {
                     {form.subject === "Other" && (
                       <Input className="mt-2 rounded-xl" placeholder="Please specify the subject" value={form.subject_other} onChange={(e) => setField("subject_other", e.target.value)} data-testid="demo-subject-other" />
                     )}
+                    {fieldErrors.subject_other && <p className="mt-1 text-xs text-destructive">{fieldErrors.subject_other}</p>}
                   </div>
                   <div className="sm:col-span-2">
                     <Label htmlFor="notes">Anything else we should know?</Label>
@@ -347,7 +440,7 @@ export default function BookDemo() {
 
                 <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
                   <Button
-                    onClick={() => detailsValid ? setStep(3) : toast.error("Please fill in all required fields.")}
+                    onClick={() => validateDetails() ? setStep(3) : toast.error("Please fix the highlighted fields.")}
                     className="pill-btn bg-primary text-primary-foreground hover:bg-accent hover:text-accent-foreground"
                     data-testid="demo-review-btn"
                   >
@@ -369,7 +462,7 @@ export default function BookDemo() {
                   <div className="flex justify-between py-1"><span className="text-muted-foreground">Parent</span><span className="font-medium">{form.parent_name}</span></div>
                   <div className="flex justify-between py-1"><span className="text-muted-foreground">Student</span><span className="font-medium">{form.student_name}</span></div>
                   <div className="flex justify-between py-1"><span className="text-muted-foreground">Email</span><span className="font-medium">{form.email}</span></div>
-                  <div className="flex justify-between py-1"><span className="text-muted-foreground">Phone</span><span className="font-medium">{form.phone}</span></div>
+                  <div className="flex justify-between py-1"><span className="text-muted-foreground">Phone</span><span className="font-medium">{dialCode} {form.phone}</span></div>
                   <div className="flex justify-between py-1"><span className="text-muted-foreground">Location</span><span className="font-medium">{displayCity}, {displayCountry}</span></div>
                   <div className="flex justify-between py-1"><span className="text-muted-foreground">Class</span><span className="font-medium">{form.student_class}</span></div>
                   <div className="flex justify-between py-1"><span className="text-muted-foreground">Subject</span><span className="font-medium">{displaySubject}</span></div>
