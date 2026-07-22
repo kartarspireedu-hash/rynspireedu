@@ -658,15 +658,17 @@ async def verify_payment(payload: VerifyPaymentIn, background: BackgroundTasks):
     if payload.customer_email:
         care = os.environ.get("CARE_EMAIL", "care@rynspireedu.com")
         html = f"""
-        <div style="font-family:Outfit,Arial,sans-serif;max-width:520px;">
-          <h2 style="color:#3b1a70;">Payment received</h2>
-          <p>Hi {payload.customer_name or ''},</p>
-          <p>Thanks — your payment for <strong>{payload.plan_key or 'RynSpireEdu Plan'}</strong> was successful.</p>
-          <p>Order ID: <code>{payload.razorpay_order_id}</code><br/>Payment ID: <code>{payload.razorpay_payment_id}</code></p>
-          <p>Our team will reach out shortly to onboard you.</p>
+        <div style="font-family:Outfit,Arial,sans-serif;max-width:520px;color:#1a1235;">
+          <h2 style="color:#3b1a70;">Payment received — welcome aboard! 🎉</h2>
+          <p>Hi {payload.customer_name or 'there'},</p>
+          <p>Thank you! Your payment for <strong>{payload.plan_key or 'your RynSpireEdu plan'}</strong> has been successfully received.</p>
+          <p>We're delighted to have you with <span style="color:#f5c542;">Ryn</span><span style="color:#7c3aed;">SpireEdu</span> — our team will reach out within 24 hours to help you get onboarded and schedule your first session.</p>
+          <p style="color:#6b7280;font-size:13px;">Order ID: <code>{payload.razorpay_order_id}</code><br/>Payment ID: <code>{payload.razorpay_payment_id}</code></p>
+          <p style="margin-top:20px;">Questions in the meantime? Just reply to this email or write to <a href="mailto:care@rynspireedu.com">care@rynspireedu.com</a>.</p>
+          <p style="color:#6b7280;font-size:13px;">— RynSpireEdu · Best Online Tutoring Services</p>
         </div>
         """
-        background.add_task(_send_email_sync, [payload.customer_email], "Payment received · RynSpireEdu", html, care)
+        background.add_task(_send_email_sync, [payload.customer_email], "Payment received · Welcome to RynSpireEdu 🎉", html, care)
     return {"ok": True, "status": "paid"}
 
 # ------------------------------------------------------------------

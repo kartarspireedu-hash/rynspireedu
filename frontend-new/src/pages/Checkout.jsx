@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CheckCircle2, ArrowLeft, Loader2, ShieldCheck } from "lucide-react";
 import { useCurrency, FX } from "@/context/CurrencyContext";
@@ -23,6 +25,8 @@ export default function Checkout() {
   const { currency, format } = useCurrency();
   const [agreed, setAgreed] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [customerName, setCustomerName] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
 
   const plan = PLANS.find((p) => p.key === state?.planKey);
 
@@ -43,6 +47,10 @@ export default function Checkout() {
   }
 
   const payNow = async () => {
+    if (!customerName.trim() || !customerEmail.trim()) {
+      toast.error("Please enter your name and email so we can send your receipt.");
+      return;
+    }
     if (!agreed) {
       toast.error("Please accept the Payment Terms & Conditions to continue.");
       return;
@@ -61,7 +69,7 @@ export default function Checkout() {
         keyId: order.key_id,
         order,
         planKey: plan.name,
-        customer: {},
+        customer: { name: customerName, email: customerEmail },
         onSuccess: async (resp) => {
           try {
             await api.post("/payments/verify", {
@@ -69,6 +77,8 @@ export default function Checkout() {
               razorpay_payment_id: resp.razorpay_payment_id,
               razorpay_signature: resp.razorpay_signature,
               plan_key: plan.key,
+              customer_email: customerEmail,
+              customer_name: customerName,
             });
             navigate("/payment-success", {
               state: {
@@ -120,6 +130,17 @@ export default function Checkout() {
           <div className="mt-6 rounded-2xl bg-secondary/60 border border-border p-4 flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Total due today</span>
             <span className="font-semibold price-amount text-xl">{format(plan.priceUsd)}</span>
+          </div>
+
+          <div className="mt-6 grid sm:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="checkout-name">Your name *</Label>
+              <Input id="checkout-name" required value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="mt-1.5 rounded-xl" data-testid="checkout-name" />
+            </div>
+            <div>
+              <Label htmlFor="checkout-email">Email (for your receipt) *</Label>
+              <Input id="checkout-email" required type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} className="mt-1.5 rounded-xl" data-testid="checkout-email" />
+            </div>
           </div>
 
           <label className="mt-6 flex items-start gap-2.5 text-xs text-muted-foreground cursor-pointer">

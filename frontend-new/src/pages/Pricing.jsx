@@ -4,6 +4,7 @@ import SiteFooter from "@/components/SiteFooter";
 import FloatingCTA from "@/components/FloatingCTA";
 import MobileStickyBar from "@/components/MobileStickyBar";
 import CurrencySwitcher from "@/components/CurrencySwitcher";
+import Seo from "@/components/Seo";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Sparkles } from "lucide-react";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -17,6 +18,10 @@ export default function Pricing() {
 
   return (
     <div className="min-h-screen">
+      <Seo
+        title="Pricing - RynSpireEdu | Online Tutoring Plans for K-12"
+        description="Transparent pricing for 1-to-1 online tutoring plans. Monthly, quarterly, half-yearly and yearly plans for K-12 students in Australia, New Zealand and worldwide."
+      />
       <SiteHeader />
       <FloatingCTA />
       <section className="container-x pt-14 sm:pt-16 pb-12">

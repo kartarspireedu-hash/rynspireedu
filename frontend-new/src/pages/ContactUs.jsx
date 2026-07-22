@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import SiteHeader from "@/components/SiteHeader";
+import Seo from "@/components/Seo";
 import SiteFooter from "@/components/SiteFooter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +35,10 @@ export default function ContactUs() {
 
   return (
     <div className="min-h-screen">
+      <Seo
+        title="Contact Us - RynSpireEdu"
+        description="Questions about tutoring plans or billing? Contact RynSpireEdu by form or email at care@rynspireedu.com."
+      />
       <SiteHeader />
       <section className="container-x pt-12 pb-20 max-w-2xl mx-auto">
         <p className="text-xs uppercase tracking-[0.25em] text-primary/80 text-center">Get in touch</p>

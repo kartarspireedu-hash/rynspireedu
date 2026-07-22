@@ -1,4 +1,5 @@
 import SiteHeader from "@/components/SiteHeader";
+import Seo from "@/components/Seo";
 import SiteFooter from "@/components/SiteFooter";
 import FloatingCTA from "@/components/FloatingCTA";
 import MobileStickyBar from "@/components/MobileStickyBar";
@@ -7,6 +8,10 @@ import BrandMark from "@/components/BrandMark";
 export default function About() {
   return (
     <div className="min-h-screen">
+      <Seo
+        title="About RynSpireEdu | Online Tutoring for Australia & New Zealand"
+        description="RynSpireEdu delivers premium 1-to-1 online tutoring for K-12 students across Australia and New Zealand, expanding soon to the US, Canada, UK, Europe and the Middle East."
+      />
       <SiteHeader />
       <FloatingCTA />
       <section className="container-x py-20 max-w-4xl">

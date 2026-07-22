@@ -10,6 +10,7 @@ import LiveStudentTicker from "@/components/LiveStudentTicker";
 import FloatingCTA from "@/components/FloatingCTA";
 import MobileStickyBar from "@/components/MobileStickyBar";
 import BrandMark from "@/components/BrandMark";
+import Seo from "@/components/Seo";
 
 const HERO_IMG = "https://images.unsplash.com/photo-1601097874965-f940d4f012b5?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1ODh8MHwxfHNlYXJjaHwzfHxzdHVkZW50JTIwbGVhcm5pbmclMjBsYXB0b3B8ZW58MHx8fHwxNzgzNTU2MDA4fDA&ixlib=rb-4.1.0&q=85";
 const PARENT_IMG = "https://images.unsplash.com/photo-1758687126864-96b61e1b3af0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2OTF8MHwxfHNlYXJjaHw0fHxzbWlsaW5nJTIwcGFyZW50JTIwcG9ydHJhaXR8ZW58MHx8fHwxNzgzNTU2MDA4fDA&ixlib=rb-4.1.0&q=85";
@@ -59,6 +60,19 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen">
+      <Seo
+        title="RynSpireEdu - Best Online Tutoring Platform in Australia and New Zealand"
+        description="Live, 1-to-1 online tutoring for K-12 students in Australia, New Zealand and worldwide. Book a free 25-minute demo class today with RynSpireEdu."
+      />
+      <script type="application/ld+json">{JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "EducationalOrganization",
+        "name": "RynSpireEdu",
+        "url": "https://rynspireedu.com",
+        "description": "Live, 1-to-1 online tutoring for K-12 students across Australia, New Zealand and worldwide.",
+        "areaServed": ["Australia", "New Zealand"],
+        "email": "care@rynspireedu.com",
+      })}</script>
       <SiteHeader />
       <FloatingCTA />
 

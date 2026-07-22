@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import SiteHeader from "@/components/SiteHeader";
+import Seo from "@/components/Seo";
 import SiteFooter from "@/components/SiteFooter";
 import BrandMark from "@/components/BrandMark";
 import { Button } from "@/components/ui/button";
@@ -158,6 +159,10 @@ export default function BookDemo() {
 
   return (
     <div className="min-h-screen">
+      <Seo
+        title="Book a Free Demo - RynSpireEdu"
+        description="Book a free 25-minute 1-to-1 online tutoring demo session with RynSpireEdu. No payment needed."
+      />
       <SiteHeader />
 
       <section className="container-x pt-10 pb-16">
