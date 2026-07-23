@@ -26,6 +26,7 @@ from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Respons
 from fastapi.responses import StreamingResponse
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import ReturnDocument
 from pydantic import BaseModel, Field, EmailStr, ConfigDict, field_validator
 
 # ------------------------------------------------------------------
@@ -64,6 +65,17 @@ def _validate_phone_digits(v: str) -> str:
     if not (7 <= len(digits) <= 15):
         raise ValueError("Please enter a valid phone number (7-15 digits, with country code).")
     return v
+
+async def _next_booking_number() -> int:
+    """Atomically generates a human-friendly, sequential booking number
+    starting at 100001 (never starts at 1)."""
+    doc = await db.counters.find_one_and_update(
+        {"_id": "demo_booking_number"},
+        {"$inc": {"seq": 1}},
+        upsert=True,
+        return_document=ReturnDocument.AFTER,
+    )
+    return 100000 + doc["seq"]
 
 def _to_ist_display(date_str: str, time_str: str, tz_name: str) -> str:
     """Convert a demo's local date/time/timezone into an India-time display
@@ -250,6 +262,7 @@ class DemoBookingIn(BaseModel):
 
 class DemoBookingOut(BaseModel):
     id: str
+    booking_number: Optional[int] = None
     name: str
     parent_name: Optional[str] = None
     student_name: Optional[str] = None
@@ -361,7 +374,7 @@ def _demo_admin_html(b: dict) -> str:
         <tr><td style="padding:6px;background:#f7f5ff;">Subject</td><td style="padding:6px;">{b['subject']}</td></tr>
         <tr><td style="padding:6px;background:#f7f5ff;">Date · Time</td><td style="padding:6px;">{b['demo_date']} at {b['demo_time']} ({b.get('timezone','')})</td></tr>
         <tr><td style="padding:6px;background:#f7f5ff;">Notes</td><td style="padding:6px;">{b.get('additional_notes','') or '(none)'}</td></tr>
-        <tr><td style="padding:6px;background:#f7f5ff;">Booking ID</td><td style="padding:6px;font-family:monospace;">{b['id']}</td></tr>
+        <tr><td style="padding:6px;background:#f7f5ff;">Booking ID</td><td style="padding:6px;font-family:monospace;">#{b.get('booking_number', b['id'])}</td></tr>
       </table>
     </div>
     """
@@ -557,8 +570,10 @@ async def create_demo(payload: DemoBookingIn, background: BackgroundTasks):
     subject = (payload.subject_other or "").strip() if payload.subject == "Other" and payload.subject_other else payload.subject
 
     bid = str(uuid.uuid4())
+    booking_number = await _next_booking_number()
     doc = {
         "id": bid,
+        "booking_number": booking_number,
         "name": payload.student_name.strip(),
         "parent_name": payload.parent_name.strip(),
         "student_name": payload.student_name.strip(),

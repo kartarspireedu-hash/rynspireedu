@@ -92,6 +92,13 @@ function fmtDate(d) {
   return d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 }
 
+const STEPS = [
+  { n: 1, l: "Schedule" },
+  { n: 2, l: "Your details" },
+  { n: 3, l: "Review" },
+  { n: 4, l: "Confirmed" },
+];
+
 export default function BookDemo() {
   const [step, setStep] = useState(1); // 1=schedule, 2=details, 3=review, 4=success
   const [date, setDate] = useState(() => {
@@ -215,7 +222,7 @@ export default function BookDemo() {
         accepted_terms: agreed,
       };
       const { data } = await api.post("/demos", payload);
-      setBookingId(data.id);
+      setBookingId(data.booking_number || data.id);
       setStep(4);
       toast.success("Demo booked! Confirmation sent to your email.");
     } catch (e) {
@@ -241,20 +248,27 @@ export default function BookDemo() {
 
       <section className="container-x pt-10 pb-16">
         <div className="max-w-3xl mx-auto">
-          {/* Progress */}
-          <div className="flex items-center justify-center gap-2 text-xs uppercase tracking-[0.2em]">
-            {[
-              { n: 1, l: "Schedule" },
-              { n: 2, l: "Your details" },
-              { n: 3, l: "Review" },
-              { n: 4, l: "Confirmed" },
-            ].map((s, i, arr) => (
+          {/* Progress — full step row on larger screens */}
+          <div className="hidden sm:flex items-center justify-center gap-2 text-xs uppercase tracking-[0.2em]">
+            {STEPS.map((s, i, arr) => (
               <div key={s.n} className="flex items-center gap-2">
                 <div className={`h-7 w-7 grid place-items-center rounded-full text-xs ${step >= s.n ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>{s.n}</div>
                 <span className={step >= s.n ? "text-foreground" : "text-muted-foreground"}>{s.l}</span>
                 {i < arr.length - 1 && <span className="w-8 h-px bg-border mx-1" />}
               </div>
             ))}
+          </div>
+
+          {/* Progress — compact, current-step-only indicator on mobile */}
+          <div className="flex sm:hidden flex-col items-center gap-2">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em]">
+              <div className="h-7 w-7 grid place-items-center rounded-full bg-primary text-primary-foreground text-xs">{step}</div>
+              <span className="text-foreground">{STEPS.find((s) => s.n === step)?.l}</span>
+              <span className="text-muted-foreground normal-case tracking-normal">· Step {step} of {STEPS.length}</span>
+            </div>
+            <div className="w-full max-w-xs h-1.5 rounded-full bg-secondary overflow-hidden">
+              <div className="h-full bg-primary transition-all duration-300" style={{ width: `${(step / STEPS.length) * 100}%` }} />
+            </div>
           </div>
 
           <div className="text-center mt-8">
@@ -309,7 +323,6 @@ export default function BookDemo() {
                     {unavailableTimes.length === TIME_SLOTS.length && (
                       <p className="mt-1.5 text-xs text-destructive">All slots are full on this date — please pick another date.</p>
                     )}
-                    <p className="mt-1.5 text-[11px] text-muted-foreground">Please allow at least 1 hour's notice so we can prepare your tutor.</p>
                   </div>
                   <div className="sm:col-span-2">
                     <Label className="text-xs">Your timezone</Label>
@@ -331,7 +344,6 @@ export default function BookDemo() {
                         </SelectGroup>
                       </SelectContent>
                     </Select>
-                    <p className="mt-1.5 text-[11px] text-muted-foreground">We currently only serve students in Australia &amp; New Zealand timezones.</p>
                   </div>
                 </div>
 
@@ -522,7 +534,7 @@ export default function BookDemo() {
                   <div className="flex justify-between py-1"><span className="text-muted-foreground">Class</span><span>{form.student_class}</span></div>
                   <div className="flex justify-between py-1"><span className="text-muted-foreground">Date</span><span>{fmtDate(date)}</span></div>
                   <div className="flex justify-between py-1"><span className="text-muted-foreground">Time</span><span>{time} ({tz.replace("_", " ")})</span></div>
-                  <div className="flex justify-between py-1 border-t border-border mt-2 pt-2"><span className="text-muted-foreground">Booking ID</span><span className="font-mono text-xs">{bookingId.slice(0, 8)}…</span></div>
+                  <div className="flex justify-between py-1 border-t border-border mt-2 pt-2"><span className="text-muted-foreground">Booking ID</span><span className="font-mono text-sm font-semibold">#{bookingId}</span></div>
                 </motion.div>
 
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }} className="mt-8 flex flex-wrap items-center justify-center gap-3">
