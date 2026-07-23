@@ -137,14 +137,18 @@ export default function BookDemo() {
     return () => { cancelled = true; };
   }, [dateKey]);
 
-  // A tutor needs at least an hour's notice — if the selected date is "today"
-  // in the chosen timezone, hide any slot less than 1 hour from now.
+  // A tutor needs at least 60 minutes' notice to prepare — computed to the
+  // minute, not just the hour. E.g. at 8:01am, 9:00 is < 60 min away so it's
+  // greyed out; at exactly 8:00am, 9:00 is exactly 60 min away and still bookable.
   const pastTimesToday = useMemo(() => {
     const tzNow = nowInTz(tz);
     const todayKeyInTz = `${tzNow.getFullYear()}-${String(tzNow.getMonth() + 1).padStart(2, "0")}-${String(tzNow.getDate()).padStart(2, "0")}`;
     if (todayKeyInTz !== dateKey) return [];
-    const cutoffHour = tzNow.getHours() + 1;
-    return TIME_SLOTS.filter((t) => parseInt(t.split(":")[0], 10) < cutoffHour);
+    const nowMinutes = tzNow.getHours() * 60 + tzNow.getMinutes();
+    return TIME_SLOTS.filter((t) => {
+      const [h, m] = t.split(":").map(Number);
+      return (h * 60 + m) - nowMinutes < 60;
+    });
   }, [tz, dateKey]);
 
   const unavailableTimes = useMemo(() => Array.from(new Set([...bookedTimes, ...pastTimesToday])), [bookedTimes, pastTimesToday]);
@@ -289,7 +293,6 @@ export default function BookDemo() {
                         />
                       </PopoverContent>
                     </Popover>
-                    <p className="mt-1.5 text-[11px] text-muted-foreground">We're closed on Sundays.</p>
                   </div>
                   <div>
                     <Label className="text-xs">Preferred time</Label>

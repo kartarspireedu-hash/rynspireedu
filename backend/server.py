@@ -536,6 +536,18 @@ async def create_demo(payload: DemoBookingIn, background: BackgroundTasks):
     if demo_dt.weekday() == 6:  # Monday=0 ... Sunday=6
         raise HTTPException(status_code=400, detail="We're closed on Sundays — please choose another day.")
 
+    try:
+        slot_dt = datetime.strptime(f"{payload.demo_date} {payload.demo_time}", "%Y-%m-%d %H:%M").replace(
+            tzinfo=ZoneInfo(payload.timezone or "Australia/Sydney")
+        )
+        now_in_tz = datetime.now(ZoneInfo(payload.timezone or "Australia/Sydney"))
+        if (slot_dt - now_in_tz).total_seconds() < 60 * 60:
+            raise HTTPException(status_code=400, detail="Please choose a time at least 1 hour from now so we can prepare your tutor.")
+    except HTTPException:
+        raise
+    except Exception:
+        pass  # if timezone parsing fails for any reason, don't block the booking on this check alone
+
     existing = await db.demo_bookings.find_one({"demo_date": payload.demo_date, "demo_time": payload.demo_time})
     if existing:
         raise HTTPException(status_code=409, detail="That time slot was just booked by someone else — please pick another time.")
