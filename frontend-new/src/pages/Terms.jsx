@@ -23,21 +23,23 @@ export default function Terms() {
 
         <div className="mt-8 space-y-3 text-sm leading-relaxed text-foreground/90">
           <p>
-            These Terms and Conditions ("Terms", "Agreement") govern your access to and use of the
-            website rynspireedu.com (the "Website") and the online tutoring services made available
-            through it (the "Services"), operated by <strong>SpireEdu Services</strong> under the brand{" "}
-            <strong>RynSpireEdu</strong> ("we", "us", "our"). This is a legally binding agreement between
-            you (the "Customer", "you", "your" — being the parent, guardian, or adult learner using our
-            Services) and us.
+            These Terms and Conditions (together, the "Terms", this "Agreement") set out the terms upon
+            which access to and use of the website rynspireedu.com (the "Website") and the online tutoring
+            services made available thereby (the "Services") are granted by SpireEdu Services, operating
+            under the trading name RynSpireEdu ("we", "us", "our", the "Company"), to the person accessing
+            or using the same (the "Customer", "you", "your", being the parent, legal guardian, or adult
+            learner availing of the Services). This Agreement constitutes a legally binding contract as
+            between the Customer and the Company.
           </p>
           <p>
-            By accessing the Website, booking a free demo session, or purchasing a tutoring plan, you
-            confirm that you have read, understood, and agree to be bound by these Terms, our{" "}
-            <a href="/privacy-policy" className="text-primary underline">Privacy Policy</a>, and any
-            policies referenced within them. If you do not agree, please do not use the Website or our
-            Services.
+            By accessing the Website, submitting a booking for a Demo Session, or procuring a Plan, the
+            Customer thereby represents and warrants that they have read, understood, and agree to be bound
+            by this Agreement, together with the Company's{" "}
+            <a href="/privacy-policy" className="text-primary underline">Privacy Policy</a> and any other
+            policy incorporated herein by reference. Should the Customer not agree to be so bound, the
+            Customer shall not access or make use of the Website or the Services.
           </p>
-          <p>You must be at least 18 years old to book Services on behalf of a student.</p>
+          <p>The Customer warrants that they are of not less than eighteen (18) years of age where booking Services on behalf of a student.</p>
         </div>
 
         <div className="mt-8">
@@ -78,10 +80,13 @@ export default function Terms() {
               under your Plan.
             </p>
             <p>
-              Session availability, subjects offered, and scheduling are subject to Tutor availability and
-              our operating hours, which currently exclude Sundays. We reserve the right to change our
-              operating days/hours, subjects offered, or the format of Sessions at our discretion, with
-              reasonable notice where practicable.
+              The availability of Sessions, subjects offered, and scheduling windows are subject to Tutor
+              availability and our standard operating calendar, as may be published or made available via
+              the booking interface of the Website from time to time. We reserve the right, in our sole
+              discretion, to determine, vary, restrict, or amend such operating calendar, minimum advance
+              booking periods, subjects offered, or the format in which Sessions are delivered, at any time
+              and without liability to you, provided that reasonable notice shall be given where practicable
+              in respect of any material adverse variation affecting a confirmed booking.
             </p>
           </Sec>
 
@@ -101,63 +106,75 @@ export default function Terms() {
 
           <Sec n="4" title="Free Demo Sessions">
             <p>
-              We offer a free, no-payment-required Demo Session so families can experience our teaching
-              style before committing to a Plan. Booking a Demo Session does not obligate you to purchase
-              any Plan, and no payment details are required to book one.
+              We make available, at our sole discretion, a complimentary, no-payment Demo Session for the
+              purpose of enabling prospective Customers to evaluate our teaching methodology prior to
+              procuring a Plan. The booking of a Demo Session shall not, of itself, constitute or give rise
+              to any obligation on the part of the Customer to procure a Plan, and no payment instrument
+              shall be required to effect such booking.
             </p>
             <p>
-              Demo Sessions must be booked at least 1 hour in advance and are not available on Sundays. We
-              reserve the right to limit the number of Demo Sessions offered per household or to decline a
-              request where slots are unavailable. By booking a Demo Session you consent to being contacted
-              by our team regarding your enquiry, in accordance with our Privacy Policy.
+              Demo Sessions are made available subject to such scheduling parameters, minimum notice
+              periods, and calendar availability as are displayed via the booking interface of the Website
+              from time to time, which parameters we may vary at our sole discretion without prior notice.
+              We further reserve the right to limit the number of Demo Sessions extended to any household or
+              individual, or to decline any request where capacity is unavailable. By submitting a booking
+              for a Demo Session, you consent to being contacted by our representatives in respect of your
+              enquiry, in accordance with our Privacy Policy.
             </p>
           </Sec>
 
           <Sec n="5" title="Plans, Fees and Payment">
             <p>
-              Prices for Plans are displayed on our Pricing page in your selected currency for convenience;
-              the amount actually charged is confirmed at checkout before payment. Payments are processed
-              securely by our payment partner, Razorpay. We do not store your full card details.
+              The prices applicable to Plans are displayed on the Pricing page of the Website in the
+              currency selected by the Customer, for informational convenience only; the amount to be
+              charged shall be confirmed at the point of checkout prior to the effecting of payment.
+              Payments hereunder are processed by the Company's third-party payment processor, Razorpay,
+              and the Company does not, at any time, store or retain the Customer's full card credentials.
             </p>
             <p>
-              Each Plan includes a fixed number of Sessions to be used within the stated validity period
-              (e.g. monthly, quarterly, half-yearly, yearly). Sessions are scheduled by mutual agreement
-              between you and the assigned Tutor, subject to availability. Unused Sessions do not carry
-              over automatically beyond a Plan's stated validity period unless we agree otherwise in writing.
+              Each Plan shall entitle the Customer to a fixed number of Sessions, to be availed of within
+              the validity period stipulated for such Plan (whether monthly, quarterly, half-yearly, or
+              annual, as applicable). Sessions shall be scheduled by mutual agreement between the Customer
+              and the assigned Tutor, subject always to availability. Sessions not availed of within the
+              stipulated validity period shall not, save as otherwise agreed by the Company in writing,
+              carry over to any subsequent period.
             </p>
             <p>
-              Where a Plan renews on a recurring basis, we will make this clear at the point of purchase.
-              You are responsible for reviewing your Plan's renewal terms before purchase.
+              Where a Plan is subject to automatic, recurring renewal, such fact shall be disclosed to the
+              Customer at the point of purchase, and it shall remain the Customer's responsibility to
+              review the applicable renewal terms prior to procuring the same.
             </p>
           </Sec>
 
           <Sec n="6" title="Cancellations, Rescheduling and Refunds">
             <ul className="space-y-2 list-disc pl-5">
-              <li>Individual Sessions may be rescheduled with at least 12 hours' notice, subject to Tutor availability.</li>
-              <li>Sessions missed without adequate notice, or where the student is unavailable at the scheduled time, are not eligible for refund or make-up unless agreed by us at our discretion.</li>
-              <li>Refund requests for Sessions not yet delivered are reviewed on a case-by-case basis and may be granted at our discretion, less any payment processing fees already incurred.</li>
-              <li>No refunds are provided for Sessions already completed.</li>
-              <li>Where you are entitled to a refund, it will be issued to the original payment method within a reasonable period.</li>
+              <li>Individual Sessions may be rescheduled upon not less than twelve (12) hours' prior notice, subject to Tutor availability.</li>
+              <li>Sessions not attended in the absence of adequate notice, or in circumstances where the student is unavailable at the scheduled time, shall not be eligible for refund or substitution, save where the Company, in its sole discretion, agrees otherwise.</li>
+              <li>Requests for refund in respect of Sessions not yet delivered shall be considered on a case-by-case basis and may be granted at the Company's sole discretion, net of any payment processing fees already incurred.</li>
+              <li>No refund shall be made in respect of Sessions already delivered.</li>
+              <li>Where a refund is due to the Customer, the same shall be remitted to the original payment instrument within a reasonable period.</li>
             </ul>
           </Sec>
 
           <Sec n="7" title="Your Obligations">
-            <p>When using our Services, you agree to:</p>
+            <p>In availing of the Services, the Customer covenants and agrees to:</p>
             <ul className="space-y-2 list-disc pl-5">
-              <li>provide accurate information about the student's learning needs, class/grade level, and subject requirements;</li>
-              <li>ensure the student has a reasonably stable internet connection and a suitable device for the Session;</li>
-              <li>ensure the student attends Sessions punctually and behaves respectfully towards the Tutor;</li>
-              <li>not record, redistribute, or publicly share Session content without our prior written consent and the Tutor's consent;</li>
-              <li>use the Website and Services only for lawful, personal/family educational purposes.</li>
+              <li>furnish accurate particulars concerning the student's learning requirements, grade level, and subject preferences;</li>
+              <li>ensure that the student has access to a reasonably stable internet connection and a device suitable for the conduct of the Session;</li>
+              <li>ensure the student's punctual attendance and conduct in a manner respectful towards the Tutor;</li>
+              <li>refrain from recording, redistributing, or publicly disseminating Session content absent the Company's and the Tutor's prior written consent;</li>
+              <li>make use of the Website and the Services solely for lawful, personal, and familial educational purposes.</li>
             </ul>
           </Sec>
 
           <Sec n="8" title="Our Service Standards; No Guarantee of Results">
             <p>
-              We select and coordinate Tutors with reasonable care and skill, and aim to match students
-              with a Tutor suited to their learning style, curriculum, and pace. However, we do not
-              guarantee specific grades, exam outcomes, or results, as these depend on many factors outside
-              our control, including student engagement, prior academic level, and external circumstances.
+              The Company shall exercise reasonable care and skill in the selection and coordination of
+              Tutors, and shall use reasonable endeavours to match students with a Tutor suited to their
+              learning style, curriculum, and pace of study. Notwithstanding the foregoing, the Company does
+              not warrant or guarantee any particular grade, examination outcome, or academic result, the
+              same being dependent upon numerous factors beyond the Company's control, including without
+              limitation student engagement, pre-existing academic standing, and external circumstance.
             </p>
           </Sec>
 
@@ -248,16 +265,21 @@ export default function Terms() {
 
           <Sec n="16" title="Governing Law and Dispute Resolution">
             <p>
-              These Terms are governed by the laws of New South Wales, Australia, without regard to its
-              conflict of law principles. For Customers located in New Zealand, nothing in this clause
-              limits any mandatory protections available to you under New Zealand law.
+              This Agreement, and any dispute or claim arising out of or in connection with it or its
+              subject matter (including non-contractual disputes or claims), shall be governed by and
+              construed in accordance with the laws of India, and the parties irrevocably agree that the
+              courts of Chandigarh, Punjab shall have exclusive jurisdiction to settle any such dispute or
+              claim, without regard to conflict of law principles. Nothing in this clause shall operate to
+              exclude or limit any non-excludable statutory right or protection to which a Customer may be
+              entitled under the mandatory consumer protection legislation of the jurisdiction in which the
+              Customer is ordinarily resident, including, without limitation, the Australian Consumer Law or
+              the Consumer Guarantees Act 1993 (New Zealand), to the extent such legislation applies and
+              cannot lawfully be excluded or limited by agreement between the parties.
             </p>
             <p>
-              If a dispute arises, we encourage you to first contact us at{" "}
-              <a className="text-primary underline" href="mailto:care@rynspireedu.com">care@rynspireedu.com</a>{" "}
-              so we can attempt to resolve it informally. Nothing in this clause prevents you from exercising
-              any non-excludable statutory rights available in your jurisdiction, including under the
-              Australian Consumer Law.
+              Prior to the commencement of any formal proceedings, the parties agree to make reasonable,
+              good-faith efforts to resolve any dispute informally by contacting{" "}
+              <a className="text-primary underline" href="mailto:care@rynspireedu.com">care@rynspireedu.com</a>.
             </p>
           </Sec>
 

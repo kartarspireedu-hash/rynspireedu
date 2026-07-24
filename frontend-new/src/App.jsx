@@ -6,6 +6,8 @@ import { ThemeProvider } from "@/context/ThemeContext";
 import { CurrencyProvider } from "@/context/CurrencyContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import TawkChat from "@/components/TawkChat";
+import MetaPixel from "@/components/MetaPixel";
+import CookieConsentBanner from "@/components/CookieConsentBanner";
 import ScrollToTop from "@/components/ScrollToTop";
 
 import Landing from "@/pages/Landing";
@@ -31,8 +33,10 @@ function App() {
       <ThemeProvider>
         <CurrencyProvider>
           <AuthProvider>
-            <TawkChat />
             <BrowserRouter>
+              <TawkChat />
+              <MetaPixel />
+              <CookieConsentBanner />
               <ScrollToTop />
               <Routes>
                 <Route path="/" element={<Landing />} />

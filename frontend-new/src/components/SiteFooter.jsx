@@ -62,6 +62,7 @@ export default function SiteFooter() {
             <li>Sydney · Auckland</li>
             <li><Link to="/privacy-policy" className="hover:text-primary">Privacy Policy</Link></li>
             <li><Link to="/terms" className="hover:text-primary">Payment Terms &amp; Conditions</Link></li>
+            <li><button type="button" onClick={() => window.dispatchEvent(new CustomEvent("rse-open-cookie-prefs"))} className="hover:text-primary underline-offset-2">Cookie Preferences</button></li>
             <li>© {new Date().getFullYear()} SpireEdu Services</li>
           </ul>
         </div>

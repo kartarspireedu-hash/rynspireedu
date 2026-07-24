@@ -14,20 +14,22 @@ export default function PrivacyPolicy() {
 
         <div className="mt-8 space-y-8 text-sm leading-relaxed text-foreground/90">
           <p>
-            RynSpireEdu ("we", "us", "our") is operated by <strong>SpireEdu Services</strong>, based in India.
-            We provide online one-to-one tutoring services to families, primarily in Australia and New Zealand.
-            This Privacy Policy explains how we collect, use, store, disclose and protect your personal
-            information, and your rights in relation to it.
+            RynSpireEdu ("we", "us", "our") is a trading name of SpireEdu Services, a business based in
+            India, which provides live, one-to-one online tutoring services principally to families
+            resident in Australia and New Zealand. This Privacy Policy sets forth the manner in which
+            personal information is collected, used, stored, disclosed, and safeguarded by us, together with
+            the rights available to individuals in respect thereof.
           </p>
           <p>
-            We are committed to handling personal information in accordance with the Australian Privacy
-            Principles (APPs) under the Privacy Act 1988 (Cth), the New Zealand Privacy Act 2020 where
-            applicable, and applicable Indian data protection law.
+            We endeavour to handle personal information in a manner consistent with the Australian Privacy
+            Principles (APPs) constituted under the Privacy Act 1988 (Cth), the Privacy Act 2020 (New
+            Zealand) insofar as applicable, and such data protection law as may from time to time be
+            applicable in India.
           </p>
           <p>
-            By using our website, submitting an enquiry, or booking a demo — including through our website,
-            a Facebook or Instagram lead form, or our demo booking page — you agree to the practices
-            described in this policy.
+            By making use of the Website, submitting an enquiry, or effecting a booking for a Demo Session
+            — whether via the Website, a Facebook or Instagram lead form, or otherwise — the individual
+            concerned thereby signifies their agreement to the practices set out in this Privacy Policy.
           </p>
 
           <div>
@@ -114,15 +116,20 @@ export default function PrivacyPolicy() {
           <div>
             <h2 className="font-display text-xl">8. Cookies, analytics, and the Meta Pixel</h2>
             <p className="mt-3">
-              Our website uses cookies and similar technologies to operate the site, understand usage, and
-              measure and improve our advertising. This includes the Meta Pixel, which allows us to measure
-              the effectiveness of our ads on Facebook and Instagram and to understand actions you take on
-              our site (such as viewing a page or booking a demo).
+              We use cookies and similar technologies, categorised as follows:
             </p>
+            <ul className="mt-3 space-y-2 list-disc pl-5">
+              <li><strong>Essential cookies</strong> — required for the Website to function (e.g. remembering your cookie preferences) and cannot be disabled.</li>
+              <li><strong>Analytics &amp; ad-measurement cookies</strong> — including the Meta Pixel, which allows us to measure the effectiveness of our advertising on Facebook and Instagram and understand actions taken on our site.</li>
+              <li><strong>Live chat cookies</strong> — used by our chat provider, Tawk.to, to operate the chat widget and maintain your conversation.</li>
+            </ul>
             <p className="mt-3">
-              These tools may collect technical identifiers and activity data. You can control cookies
-              through your browser settings, and you can manage ad preferences through the settings on
-              Facebook and Instagram. Disabling cookies may affect some website functionality.
+              On your first visit, you will be presented with a cookie banner allowing you to accept all
+              cookies, reject all non-essential cookies, or customise your preferences by category. You may
+              change your preferences at any time via the "Cookie Preferences" link in the website footer,
+              and you can further manage ad preferences through the settings on Facebook and Instagram.
+              Disabling non-essential cookies may affect some website functionality (for example, the live
+              chat widget will not load).
             </p>
           </div>
 
