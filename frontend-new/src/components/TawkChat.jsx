@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { getConsent } from "@/lib/cookieConsent";
 
 /**
  * Loads the Tawk.to live chat widget site-wide (only once the visitor has
@@ -56,13 +55,9 @@ function loadTawk() {
 
 export default function TawkChat() {
   useEffect(() => {
-    if (getConsent().chat) loadTawk();
-
-    const onChange = (e) => {
-      if (e.detail?.chat) loadTawk();
-    };
-    window.addEventListener("rse-consent-changed", onChange);
-    return () => window.removeEventListener("rse-consent-changed", onChange);
+    // Live chat is treated as core to the site's customer-contact function
+    // and loads regardless of cookie preference.
+    loadTawk();
   }, []);
 
   return null;

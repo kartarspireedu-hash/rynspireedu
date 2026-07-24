@@ -5,8 +5,7 @@ const KEY = "rse_cookie_consent";
 
 const DEFAULT_CONSENT = {
   essential: true,      // always on, can't be disabled — site can't function without it
-  analytics: false,     // Meta Pixel / ad measurement
-  chat: false,           // Tawk.to live chat widget
+  analytics: false,     // ad measurement / marketing pixel
   decided: false,        // has the visitor made an explicit choice yet?
 };
 
@@ -28,9 +27,9 @@ export function setConsent(partial) {
 }
 
 export function acceptAll() {
-  return setConsent({ analytics: true, chat: true });
+  return setConsent({ analytics: true });
 }
 
 export function rejectNonEssential() {
-  return setConsent({ analytics: false, chat: false });
+  return setConsent({ analytics: false });
 }

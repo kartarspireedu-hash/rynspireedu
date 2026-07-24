@@ -119,17 +119,14 @@ export default function PrivacyPolicy() {
               We use cookies and similar technologies, categorised as follows:
             </p>
             <ul className="mt-3 space-y-2 list-disc pl-5">
-              <li><strong>Essential cookies</strong> — required for the Website to function (e.g. remembering your cookie preferences) and cannot be disabled.</li>
-              <li><strong>Analytics &amp; ad-measurement cookies</strong> — including the Meta Pixel, which allows us to measure the effectiveness of our advertising on Facebook and Instagram and understand actions taken on our site.</li>
-              <li><strong>Live chat cookies</strong> — used by our chat provider, Tawk.to, to operate the chat widget and maintain your conversation.</li>
+              <li><strong>Essential and service-necessary cookies</strong> — required for the Website to function and for you to be able to contact us (including via our live chat widget, which loads on every visit so that support is always available). These cannot be disabled.</li>
+              <li><strong>Optional analytics &amp; ad-measurement cookies</strong> — including the Meta Pixel, which allows us to measure the effectiveness of our advertising and understand actions taken on our site. These are only activated with your consent.</li>
             </ul>
             <p className="mt-3">
-              On your first visit, you will be presented with a cookie banner allowing you to accept all
-              cookies, reject all non-essential cookies, or customise your preferences by category. You may
-              change your preferences at any time via the "Cookie Preferences" link in the website footer,
-              and you can further manage ad preferences through the settings on Facebook and Instagram.
-              Disabling non-essential cookies may affect some website functionality (for example, the live
-              chat widget will not load).
+              On your first visit, you will be presented with a cookie banner allowing you to accept or
+              decline optional cookies, or customise your preference. You may change your preference at any
+              time via the "Cookie Preferences" link in the website footer, and you can further manage ad
+              preferences directly through your Facebook and Instagram account settings.
             </p>
           </div>
 
