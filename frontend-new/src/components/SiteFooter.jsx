@@ -20,6 +20,21 @@ const NZ_CITIES = [
   "Feilding", "Oamaru", "Havelock North", "Rangiora", "Warkworth",
 ];
 
+const US_CITIES = [
+  "New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "Philadelphia",
+  "San Antonio", "San Diego", "Dallas", "San Jose", "Austin", "Jacksonville",
+  "San Francisco", "Columbus", "Fort Worth", "Charlotte", "Seattle", "Denver",
+  "Boston", "Nashville", "Portland", "Las Vegas", "Atlanta", "Miami",
+  "Minneapolis", "Tampa", "Orlando", "Sacramento", "St. Louis", "Pittsburgh",
+];
+
+const CANADA_CITIES = [
+  "Toronto", "Vancouver", "Montreal", "Calgary", "Edmonton", "Ottawa",
+  "Winnipeg", "Quebec City", "Hamilton", "Kitchener", "London", "Victoria",
+  "Halifax", "Oshawa", "Windsor", "Saskatoon", "Regina", "St. John's",
+  "Barrie", "Kelowna", "Guelph", "Burlington", "Sudbury", "Kingston",
+];
+
 function CityList({ cities }) {
   return (
     <p className="text-xs text-muted-foreground leading-6">
@@ -42,7 +57,7 @@ export default function SiteFooter() {
         <div className="col-span-2">
           <BrandMark size="md" />
           <p className="text-sm text-muted-foreground mt-4 max-w-sm leading-relaxed">
-            Premium 1-to-1 online tutoring for Kindergarten to Year 12. A SpireEdu Services brand — trusted across Australia, New Zealand and worldwide.
+            Premium 1-to-1 online tutoring for Kindergarten to Year 12. A SpireEdu Services brand — trusted across Australia, New Zealand, the US, Canada and worldwide.
           </p>
           <p className="mt-4 text-xs uppercase tracking-[0.2em] text-muted-foreground">RynSpireEdu · SpireEdu Services</p>
         </div>
@@ -59,9 +74,13 @@ export default function SiteFooter() {
           <h4 className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-4">Contact</h4>
           <ul className="space-y-2 text-sm">
             <li><a href="mailto:care@rynspireedu.com" className="hover:text-primary">care@rynspireedu.com</a></li>
-            <li>Sydney · Auckland</li>
+            <li>Sydney · Auckland · Toronto</li>
             <li><Link to="/privacy-policy" className="hover:text-primary">Privacy Policy</Link></li>
             <li><Link to="/terms" className="hover:text-primary">Payment Terms &amp; Conditions</Link></li>
+            <li><Link to="/terms-of-use" className="hover:text-primary">Terms of Use</Link></li>
+            <li><Link to="/cancellation-policy" className="hover:text-primary">Cancellation Policy</Link></li>
+            <li><Link to="/refund-policy" className="hover:text-primary">Refund Policy</Link></li>
+            <li><Link to="/child-protection" className="hover:text-primary">Child Protection</Link></li>
             <li><button type="button" onClick={() => window.dispatchEvent(new CustomEvent("rse-open-cookie-prefs"))} className="hover:text-primary underline-offset-2">Cookie Preferences</button></li>
             <li>© {new Date().getFullYear()} SpireEdu Services</li>
           </ul>
@@ -79,8 +98,16 @@ export default function SiteFooter() {
             <h4 className="text-xs uppercase tracking-[0.2em] text-primary/80 mb-3">Online Tutoring across New Zealand</h4>
             <CityList cities={NZ_CITIES} />
           </div>
+          <div>
+            <h4 className="text-xs uppercase tracking-[0.2em] text-primary/80 mb-3">Online Tutoring across the United States</h4>
+            <CityList cities={US_CITIES} />
+          </div>
+          <div>
+            <h4 className="text-xs uppercase tracking-[0.2em] text-primary/80 mb-3">Online Tutoring across Canada</h4>
+            <CityList cities={CANADA_CITIES} />
+          </div>
           <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground pt-4 border-t border-border">
-            RynSpireEdu — a brand of SpireEdu Services · Online lessons delivered anywhere. Local coordinator support for AU & NZ families.
+            RynSpireEdu — a brand of SpireEdu Services · Online lessons delivered anywhere. Local coordinator support for AU, NZ, US &amp; Canada families.
           </p>
         </div>
       </div>

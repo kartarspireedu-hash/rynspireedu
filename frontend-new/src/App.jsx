@@ -19,6 +19,10 @@ import Checkout from "@/pages/Checkout";
 import ContactUs from "@/pages/ContactUs";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import Terms from "@/pages/Terms";
+import TermsOfUse from "@/pages/TermsOfUse";
+import CancellationPolicy from "@/pages/CancellationPolicy";
+import RefundPolicy from "@/pages/RefundPolicy";
+import ChildProtection from "@/pages/ChildProtection";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import StudentDashboard from "@/pages/StudentDashboard";
@@ -48,6 +52,10 @@ function App() {
                 <Route path="/contact" element={<ContactUs />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="/terms" element={<Terms />} />
+                <Route path="/terms-of-use" element={<TermsOfUse />} />
+                <Route path="/cancellation-policy" element={<CancellationPolicy />} />
+                <Route path="/refund-policy" element={<RefundPolicy />} />
+                <Route path="/child-protection" element={<ChildProtection />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
 

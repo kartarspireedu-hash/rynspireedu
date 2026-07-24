@@ -16,7 +16,7 @@ export default function PrivacyPolicy() {
           <p>
             RynSpireEdu ("we", "us", "our") is a trading name of SpireEdu Services, a business based in
             India, which provides live, one-to-one online tutoring services principally to families
-            resident in Australia and New Zealand. This Privacy Policy sets forth the manner in which
+            resident in Australia, New Zealand, the United States and Canada. This Privacy Policy sets forth the manner in which
             personal information is collected, used, stored, disclosed, and safeguarded by us, together with
             the rights available to individuals in respect thereof.
           </p>

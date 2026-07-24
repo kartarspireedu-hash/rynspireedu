@@ -46,7 +46,7 @@ export default function Terms() {
           <h2 className="font-display text-xl">About us</h2>
           <p className="mt-3 text-sm text-foreground/90">
             RynSpireEdu is a brand operated by SpireEdu Services. We provide live, 1-to-1 online tutoring
-            for K-12 students, primarily serving families in Australia and New Zealand.
+            for K-12 students, serving families in Australia, New Zealand, the United States and Canada.
           </p>
           <p className="mt-2 text-sm text-foreground/90">You can contact us:</p>
           <ul className="mt-2 space-y-1 text-sm list-disc pl-5">

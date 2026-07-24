@@ -20,7 +20,7 @@ export default function Pricing() {
     <div className="min-h-screen">
       <Seo
         title="Pricing - RynSpireEdu | Online Tutoring Plans for K-12"
-        description="Transparent pricing for 1-to-1 online tutoring plans. Monthly, quarterly, half-yearly and yearly plans for K-12 students in Australia, New Zealand and worldwide."
+        description="Transparent pricing for 1-to-1 online tutoring plans. Monthly, quarterly, half-yearly and yearly plans for K-12 students in Australia, New Zealand, the US, Canada and worldwide."
       />
       <SiteHeader />
       <FloatingCTA />

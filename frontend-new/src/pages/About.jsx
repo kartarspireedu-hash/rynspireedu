@@ -9,8 +9,8 @@ export default function About() {
   return (
     <div className="min-h-screen">
       <Seo
-        title="About RynSpireEdu | Online Tutoring for Australia & New Zealand"
-        description="RynSpireEdu delivers premium 1-to-1 online tutoring for K-12 students across Australia and New Zealand, expanding soon to the US, Canada, UK, Europe and the Middle East."
+        title="About RynSpireEdu | Online Tutoring for Australia, NZ, US & Canada"
+        description="RynSpireEdu delivers premium 1-to-1 online tutoring for K-12 students across Australia, New Zealand, the United States and Canada, expanding soon to the UK, Europe and the Middle East."
       />
       <SiteHeader />
       <FloatingCTA />
@@ -32,10 +32,10 @@ export default function About() {
             progress updates and full visibility into how their child is learning.
           </p>
           <p>
-            Today, RynSpireEdu is focused on delivering an outstanding K–12 tutoring experience for
-            families across <strong className="text-foreground">Australia and New Zealand</strong>.
+            Today, RynSpireEdu delivers an outstanding K–12 tutoring experience for families across{" "}
+            <strong className="text-foreground">Australia, New Zealand, the United States and Canada</strong>.
             As we grow, we plan to bring the same 1-to-1, human-first approach to students in the
-            <strong className="text-foreground"> United States, Canada, the Middle East, the United Kingdom and Europe</strong>.
+            <strong className="text-foreground"> Middle East, the United Kingdom and Europe</strong>.
           </p>
           <p className="text-sm">
             For anything — questions, feedback, partnerships — email <a href="mailto:care@rynspireedu.com" className="text-primary hover:underline">care@rynspireedu.com</a>. You&apos;ll hear back within 24 hours.

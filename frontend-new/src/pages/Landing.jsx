@@ -61,16 +61,16 @@ export default function Landing() {
   return (
     <div className="min-h-screen">
       <Seo
-        title="RynSpireEdu - Best Online Tutoring Platform in Australia and New Zealand"
-        description="Live, 1-to-1 online tutoring for K-12 students in Australia, New Zealand and worldwide. Book a free 25-minute demo class today with RynSpireEdu."
+        title="RynSpireEdu - Best Online Tutoring Platform in Australia, New Zealand, US & Canada"
+        description="Live, 1-to-1 online tutoring for K-12 students in Australia, New Zealand, the United States, Canada and worldwide. Book a free 25-minute demo class today with RynSpireEdu."
       />
       <script type="application/ld+json">{JSON.stringify({
         "@context": "https://schema.org",
         "@type": "EducationalOrganization",
         "name": "RynSpireEdu",
         "url": "https://rynspireedu.com",
-        "description": "Live, 1-to-1 online tutoring for K-12 students across Australia, New Zealand and worldwide.",
-        "areaServed": ["Australia", "New Zealand"],
+        "description": "Live, 1-to-1 online tutoring for K-12 students across Australia, New Zealand, the United States, Canada and worldwide.",
+        "areaServed": ["Australia", "New Zealand", "United States", "Canada"],
         "email": "care@rynspireedu.com",
       })}</script>
       <SiteHeader />
@@ -98,7 +98,7 @@ export default function Landing() {
             </h1>
             <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
               Live, one-to-one lessons designed around your child. Personalised study plans, weekly progress reports, and full parent transparency<br className="hidden sm:inline" />
-              — built for Australia, New Zealand and beyond.
+              — built for Australia, New Zealand, the US and Canada.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3 justify-center">
@@ -211,7 +211,7 @@ export default function Landing() {
         <div className="text-center">
           <Eyebrow>Loved by families</Eyebrow>
           <h2 className="mt-3 font-display text-3xl sm:text-4xl lg:text-5xl">Results, in their own words.</h2>
-          <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">Real feedback from parents and students across Australia and New Zealand.</p>
+          <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">Real feedback from parents and students across Australia, New Zealand, the US and Canada.</p>
         </div>
 
         <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-5">

@@ -36,6 +36,8 @@ const TUTORS = [
 const CITIES = [
   "Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide", "Canberra",
   "Gold Coast", "Auckland", "Wellington", "Christchurch", "Hamilton", "Dunedin",
+  "New York", "Los Angeles", "Chicago", "San Francisco", "Seattle", "Boston",
+  "Toronto", "Vancouver", "Montreal", "Calgary",
 ];
 
 // Deterministic index into total 8,640 (60 * 24 * 6) student combos

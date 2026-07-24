@@ -23,17 +23,19 @@ function isoToFlag(iso2) {
   return String.fromCodePoint(...[...iso2.toUpperCase()].map((c) => 127397 + c.charCodeAt(0)));
 }
 
-// We only currently serve Australia & New Zealand — shown selectable.
+// We currently serve Australia, New Zealand, the United States & Canada.
 // Other countries are shown for context but disabled (visual only, per request).
-const COUNTRIES_ENABLED = ["Australia", "New Zealand"];
+const COUNTRIES_ENABLED = ["Australia", "New Zealand", "United States", "Canada"];
 const COUNTRIES_DISABLED = [
-  "United States", "United Kingdom", "Canada", "Singapore", "India",
+  "United Kingdom", "Singapore", "India",
   "United Arab Emirates", "Ireland", "Germany",
 ];
 
 const CITIES_BY_COUNTRY = {
   "Australia": ["Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide", "Canberra", "Gold Coast", "Hobart", "Darwin", "Other"],
   "New Zealand": ["Auckland", "Wellington", "Christchurch", "Hamilton", "Tauranga", "Dunedin", "Palmerston North", "Other"],
+  "United States": ["New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "San Francisco", "Seattle", "Boston", "Austin", "Denver", "Other"],
+  "Canada": ["Toronto", "Vancouver", "Montreal", "Calgary", "Ottawa", "Edmonton", "Winnipeg", "Other"],
 };
 
 const CLASSES = [
@@ -52,10 +54,15 @@ const TIME_SLOTS = [
   "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00",
 ];
 
-// Australia & New Zealand are the only selectable timezones — shown first.
+// Australia, New Zealand, the US & Canada are the selectable timezones.
 // Other zones are visible for reference only and cannot be selected.
-const TZ_PRIMARY = ["Australia/Sydney", "Australia/Melbourne", "Australia/Perth", "Australia/Brisbane", "Australia/Adelaide", "Pacific/Auckland"];
-const TZ_OTHER = ["Asia/Kolkata", "Asia/Singapore", "Asia/Dubai", "Europe/London", "Europe/Dublin", "Europe/Berlin", "America/New_York", "America/Los_Angeles", "America/Toronto"];
+const TZ_PRIMARY = [
+  "Australia/Sydney", "Australia/Melbourne", "Australia/Perth", "Australia/Brisbane", "Australia/Adelaide",
+  "Pacific/Auckland",
+  "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
+  "America/Toronto", "America/Vancouver",
+];
+const TZ_OTHER = ["Asia/Kolkata", "Asia/Singapore", "Asia/Dubai", "Europe/London", "Europe/Dublin", "Europe/Berlin"];
 
 // Phone country/dial codes — default falls back to Australia (+61)
 const DIAL_CODES = [
@@ -330,7 +337,7 @@ export default function BookDemo() {
                       <SelectTrigger className="mt-1.5 rounded-xl" data-testid="demo-tz-select"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectGroup>
-                          <SelectLabel className="text-primary">Australia &amp; New Zealand</SelectLabel>
+                          <SelectLabel className="text-primary">Australia, NZ, US &amp; Canada</SelectLabel>
                           {TZ_PRIMARY.map((t) => (
                             <SelectItem key={t} value={t} className="font-medium">{t.replace("_", " ")}</SelectItem>
                           ))}
