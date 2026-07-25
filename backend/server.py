@@ -8,6 +8,7 @@ import os
 import io
 import csv
 import uuid
+import secrets
 import hmac
 import hashlib
 import logging
@@ -743,6 +744,36 @@ async def verify_payment(payload: VerifyPaymentIn, background: BackgroundTasks):
         {"$set": {"status": "paid", "payment_id": payload.razorpay_payment_id,
                   "paid_at": datetime.now(timezone.utc).isoformat()}}
     )
+    account_link_html = ""
+    if payload.customer_email:
+        email = payload.customer_email.lower().strip()
+        existing_user = await db.users.find_one({"email": email})
+        if not existing_user:
+            uid = str(uuid.uuid4())
+            token = secrets.token_urlsafe(32)
+            await db.users.insert_one({
+                "id": uid, "name": (payload.customer_name or "Student").strip(), "email": email,
+                "password_hash": hash_password(secrets.token_urlsafe(24)),  # unusable random placeholder
+                "role": "student", "grade": None, "country": None, "avatar": None,
+                "set_password_token": token,
+                "set_password_expires": (datetime.now(timezone.utc) + timedelta(days=14)).isoformat(),
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            })
+            frontend_url = os.environ.get("FRONTEND_URL", "https://rynspireedu.com")
+            account_link_html = f"""
+            <p style="margin-top:16px;"><a href="{frontend_url}/set-password?token={token}"
+               style="display:inline-block;padding:10px 20px;background:#7c3aed;color:#fff;border-radius:999px;text-decoration:none;">
+               Set up your account &amp; dashboard</a></p>
+            <p style="color:#6b7280;font-size:12px;">This link is valid for 14 days.</p>
+            """
+        else:
+            frontend_url = os.environ.get("FRONTEND_URL", "https://rynspireedu.com")
+            account_link_html = f"""
+            <p style="margin-top:16px;"><a href="{frontend_url}/login"
+               style="display:inline-block;padding:10px 20px;background:#7c3aed;color:#fff;border-radius:999px;text-decoration:none;">
+               Log in to your dashboard</a></p>
+            """
+
     if payload.customer_email:
         care = os.environ.get("CARE_EMAIL", "care@rynspireedu.com")
         html = f"""
@@ -751,6 +782,7 @@ async def verify_payment(payload: VerifyPaymentIn, background: BackgroundTasks):
           <p>Hi {payload.customer_name or 'there'},</p>
           <p>Thank you! Your payment for <strong>{payload.plan_key or 'your RynSpireEdu plan'}</strong> has been successfully received.</p>
           <p>We're delighted to have you with <span style="color:#f5c542;">Ryn</span><span style="color:#7c3aed;">SpireEdu</span> — our team will reach out within 24 hours to help you get onboarded and schedule your first session.</p>
+          {account_link_html}
           <p style="color:#6b7280;font-size:13px;">Order ID: <code>{payload.razorpay_order_id}</code><br/>Payment ID: <code>{payload.razorpay_payment_id}</code></p>
           <p style="margin-top:20px;">Questions in the meantime? Just reply to this email or write to <a href="mailto:care@rynspireedu.com">care@rynspireedu.com</a>.</p>
           <p style="color:#6b7280;font-size:13px;">— RynSpireEdu · Best Online Tutoring Services</p>
@@ -758,6 +790,27 @@ async def verify_payment(payload: VerifyPaymentIn, background: BackgroundTasks):
         """
         background.add_task(_send_email_sync, [payload.customer_email], "Payment received · Welcome to RynSpireEdu 🎉", html, care)
     return {"ok": True, "status": "paid"}
+
+class SetPasswordIn(BaseModel):
+    token: str
+    password: str = Field(min_length=8, max_length=128)
+
+@api_router.post("/auth/set-password", response_model=UserOut)
+async def set_password(payload: SetPasswordIn, response: Response):
+    u = await db.users.find_one({"set_password_token": payload.token})
+    if not u:
+        raise HTTPException(status_code=400, detail="This link is invalid or has already been used.")
+    expires = u.get("set_password_expires")
+    if expires and datetime.fromisoformat(expires) < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="This link has expired. Please contact care@rynspireedu.com for a new one.")
+    await db.users.update_one(
+        {"id": u["id"]},
+        {"$set": {"password_hash": hash_password(payload.password)},
+         "$unset": {"set_password_token": "", "set_password_expires": ""}}
+    )
+    _set_auth_cookies(response, create_access_token(u["id"], u["email"], u["role"]), create_refresh_token(u["id"]))
+    u["password_hash"] = None
+    return UserOut(**{k: v for k, v in u.items() if k not in ("_id", "password_hash", "set_password_token", "set_password_expires")})
 
 # ------------------------------------------------------------------
 # Admin

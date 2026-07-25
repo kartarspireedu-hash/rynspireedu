@@ -102,10 +102,7 @@ export default function TutorDashboard() {
           </div>
           <div className="rounded-2xl border border-accent/40 bg-accent/5 p-6">
             <h3 className="font-display text-xl">Complete your tutor profile</h3>
-            <p className="mt-2 text-sm text-muted-foreground">Add subjects, bio and rate so families can find you.</p>
-            <Button asChild className="mt-4 pill-btn bg-primary hover:bg-accent hover:text-accent-foreground">
-              <Link to="/tutors">View public profile <ArrowRight size={14} className="ml-1.5" /></Link>
-            </Button>
+            <p className="mt-2 text-sm text-muted-foreground">Add subjects, bio and rate so families can find you. Public tutor profiles are coming in v2 — for now, email your details to <a href="mailto:care@rynspireedu.com" className="text-primary underline">care@rynspireedu.com</a> and we'll set it up for you.</p>
           </div>
         </div>
       </div>

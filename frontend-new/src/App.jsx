@@ -24,6 +24,7 @@ import CancellationPolicy from "@/pages/CancellationPolicy";
 import RefundPolicy from "@/pages/RefundPolicy";
 import ChildProtection from "@/pages/ChildProtection";
 import Login from "@/pages/Login";
+import SetPassword from "@/pages/SetPassword";
 import Register from "@/pages/Register";
 import StudentDashboard from "@/pages/StudentDashboard";
 import TutorDashboard from "@/pages/TutorDashboard";
@@ -57,6 +58,7 @@ function App() {
                 <Route path="/refund-policy" element={<RefundPolicy />} />
                 <Route path="/child-protection" element={<ChildProtection />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/set-password" element={<SetPassword />} />
                 <Route path="/register" element={<Register />} />
 
                 <Route path="/app/student" element={<ProtectedRoute roles={["student", "parent"]}><StudentDashboard /></ProtectedRoute>} />
