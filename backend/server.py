@@ -24,7 +24,8 @@ from typing import List, Optional, Literal
 import razorpay
 import requests
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, BackgroundTasks
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import ReturnDocument
@@ -880,3 +881,26 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ------------------------------------------------------------------
+# Serve the built frontend (frontend-new/dist, copied here as ./static)
+# so one Railway service can host both the API and the website.
+# Must be registered AFTER api_router so /api/* is never shadowed.
+# ------------------------------------------------------------------
+_static_dir = Path(__file__).parent / "static"
+if _static_dir.exists():
+    _assets_dir = _static_dir / "assets"
+    if _assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=str(_assets_dir)), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        # Serve real static files (favicons, robots.txt, sitemap.xml, etc.) directly
+        candidate = _static_dir / full_path
+        if full_path and candidate.is_file():
+            return FileResponse(str(candidate))
+        # Everything else (React Router client-side routes) falls back to index.html
+        index_file = _static_dir / "index.html"
+        if index_file.exists():
+            return FileResponse(str(index_file))
+        raise HTTPException(status_code=404, detail="Not found")

@@ -1,8 +1,11 @@
 import axios from "axios";
 
-// Vite environment variable
+// Vite environment variable. If not explicitly set:
+// - in local dev, fall back to localhost:8000 (separate backend dev server)
+// - in production, fall back to "" (relative /api — same-origin, since the
+//   backend now serves the built frontend directly as one Railway service)
 const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+  import.meta.env.VITE_BACKEND_URL || (import.meta.env.DEV ? "http://localhost:8000" : "");
 
 export const API_BASE = `${BACKEND_URL}/api`;
 
