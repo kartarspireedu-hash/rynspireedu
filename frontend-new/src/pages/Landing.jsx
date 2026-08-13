@@ -141,7 +141,7 @@ export default function Landing() {
               className="card-lift group rounded-2xl border border-border p-5 bg-card flex items-center gap-3 text-left"
             >
               <div className="h-10 w-10 rounded-xl bg-secondary grid place-items-center group-hover:bg-accent/25 transition-colors">
-                <s.icon size={18} className="text-primary group-hover:text-accent-foreground" />
+                <s.icon size={18} className="text-primary group-hover:text-accent transition-colors" />
               </div>
               <span className="text-sm font-medium">{s.name}</span>
             </motion.div>

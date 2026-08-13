@@ -53,7 +53,7 @@ function CityList({ cities }) {
 export default function SiteFooter() {
   return (
     <footer className="border-t border-border mt-16 pb-24 lg:pb-0" data-testid="site-footer">
-      <div className="container-x py-14 grid grid-cols-2 md:grid-cols-4 gap-10">
+      <div className="container-x py-14 grid grid-cols-2 md:grid-cols-5 gap-10">
         <div className="col-span-2">
           <BrandMark size="md" />
           <p className="text-sm text-muted-foreground mt-4 max-w-sm leading-relaxed">
@@ -71,18 +71,23 @@ export default function SiteFooter() {
           </ul>
         </div>
         <div>
-          <h4 className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-4">Contact</h4>
+          <h4 className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-4">Legal</h4>
           <ul className="space-y-2 text-sm">
-            <li><a href="mailto:care@rynspireedu.com" className="hover:text-primary">care@rynspireedu.com</a></li>
-            <li>Sydney · Auckland · Toronto</li>
             <li><Link to="/privacy-policy" className="hover:text-primary">Privacy Policy</Link></li>
             <li><Link to="/terms" className="hover:text-primary">Payment Terms &amp; Conditions</Link></li>
             <li><Link to="/terms-of-use" className="hover:text-primary">Terms of Use</Link></li>
             <li><Link to="/cancellation-policy" className="hover:text-primary">Cancellation Policy</Link></li>
             <li><Link to="/refund-policy" className="hover:text-primary">Refund Policy</Link></li>
             <li><Link to="/child-protection" className="hover:text-primary">Child Protection</Link></li>
-            <li><button type="button" onClick={() => window.dispatchEvent(new CustomEvent("rse-open-cookie-prefs"))} className="hover:text-primary underline-offset-2">Cookie Preferences</button></li>
-            <li>© {new Date().getFullYear()} SpireEdu Services</li>
+          </ul>
+        </div>
+        <div>
+          <h4 className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-4">Contact</h4>
+          <ul className="space-y-2 text-sm">
+            <li><a href="mailto:care@rynspireedu.com" className="hover:text-primary">care@rynspireedu.com</a></li>
+            <li>Sydney · Auckland · Toronto</li>
+            <li><button type="button" onClick={() => window.dispatchEvent(new CustomEvent("rse-open-cookie-prefs"))} className="hover:text-primary underline-offset-2 text-left">Cookie Preferences</button></li>
+            <li className="text-muted-foreground">© {new Date().getFullYear()} SpireEdu Services</li>
           </ul>
         </div>
       </div>

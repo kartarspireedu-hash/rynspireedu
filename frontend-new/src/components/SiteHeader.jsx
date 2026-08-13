@@ -54,7 +54,8 @@ export default function SiteHeader() {
           <button
             onClick={toggle}
             data-testid="theme-toggle"
-            aria-label="Toggle theme"
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
             className="h-9 w-9 grid place-items-center rounded-full hover:bg-secondary transition-colors"
           >
             {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}

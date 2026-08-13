@@ -44,6 +44,19 @@ api_router = APIRouter(prefix="/api")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("rynspireedu")
 
+# Redirect www.rynspireedu.com -> rynspireedu.com so there's exactly one
+# canonical URL (avoids duplicate-content SEO confusion and cookie mismatches).
+@app.middleware("http")
+async def redirect_www(request: Request, call_next):
+    host = request.headers.get("host", "")
+    if host.startswith("www."):
+        from fastapi.responses import RedirectResponse
+        target = f"https://{host[4:]}{request.url.path}"
+        if request.url.query:
+            target += f"?{request.url.query}"
+        return RedirectResponse(url=target, status_code=301)
+    return await call_next(request)
+
 # Shared validation helpers (mirrors frontend lib/validators.js) — server-side
 # is the source of truth since client-side checks can always be bypassed.
 DISPOSABLE_EMAIL_DOMAINS = {
@@ -243,6 +256,7 @@ class DemoBookingIn(BaseModel):
     city: str
     city_other: Optional[str] = Field(default=None, max_length=60)
     student_class: str = Field(description="e.g. Year 8, Grade 10, Kindergarten")
+    class_other: Optional[str] = Field(default=None, max_length=60)
     subject: str
     subject_other: Optional[str] = Field(default=None, max_length=60)
     demo_date: str = Field(description="YYYY-MM-DD")
@@ -570,6 +584,7 @@ async def create_demo(payload: DemoBookingIn, background: BackgroundTasks):
     country = (payload.country_other or "").strip() if payload.country == "Other" and payload.country_other else payload.country
     city = (payload.city_other or "").strip() if payload.city == "Other" and payload.city_other else payload.city
     subject = (payload.subject_other or "").strip() if payload.subject == "Other" and payload.subject_other else payload.subject
+    student_class = (payload.class_other or "").strip() if payload.student_class == "Other" and payload.class_other else payload.student_class
 
     bid = str(uuid.uuid4())
     booking_number = await _next_booking_number()
@@ -583,7 +598,7 @@ async def create_demo(payload: DemoBookingIn, background: BackgroundTasks):
         "phone": payload.phone.strip(),
         "country": country,
         "city": city,
-        "student_class": payload.student_class,
+        "student_class": student_class,
         "subject": subject,
         "demo_date": payload.demo_date,
         "demo_time": payload.demo_time,
@@ -645,6 +660,7 @@ class ContactIn(BaseModel):
     name: str = Field(min_length=2, max_length=80)
     email: EmailStr
     phone: str | None = Field(default=None, max_length=30)
+    subject: str | None = Field(default=None, max_length=150)
     message: str = Field(min_length=1, max_length=2000)
 
     @field_validator("email")
@@ -670,12 +686,12 @@ async def contact(payload: ContactIn, background: BackgroundTasks):
       <p style="color:#6b7280;font-size:13px;">— RynSpireEdu · Best Online Tutoring Services</p>
     </div>
     """
-    admin_html = f"<h3>New Care Message</h3><p><b>From:</b> {payload.name} &lt;{payload.email}&gt;{f' · {payload.phone}' if payload.phone else ''}</p><p>{payload.message}</p>"
+    admin_html = f"<h3>New Care Message</h3><p><b>From:</b> {payload.name} &lt;{payload.email}&gt;{f' · {payload.phone}' if payload.phone else ''}</p>{f'<p><b>Subject:</b> {payload.subject}</p>' if payload.subject else ''}<p>{payload.message}</p>"
     background.add_task(_send_email_sync, [payload.email], "Thanks for contacting RynSpireEdu", user_html, care)
-    background.add_task(_send_email_sync, [care], f"[Care] {payload.name}", admin_html, payload.email)
+    background.add_task(_send_email_sync, [care], f"[Care] {payload.subject or payload.name}", admin_html, payload.email)
     contact_doc = {
         "id": str(uuid.uuid4()), "name": payload.name, "email": payload.email.lower(),
-        "phone": payload.phone or "", "message": payload.message,
+        "phone": payload.phone or "", "subject": payload.subject or "", "message": payload.message,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.contact_messages.insert_one(contact_doc)

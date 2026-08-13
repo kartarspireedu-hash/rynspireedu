@@ -16,12 +16,8 @@ import { Calendar as CalendarComp } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ArrowLeft, ArrowRight, CalendarIcon, CheckCircle2, Sparkles, Clock, Mail } from "lucide-react";
 import api from "@/lib/api";
-import { validateEmail, validatePhone } from "@/lib/validators";
-
-function isoToFlag(iso2) {
-  if (!iso2 || iso2.length !== 2) return "🌐";
-  return String.fromCodePoint(...[...iso2.toUpperCase()].map((c) => 127397 + c.charCodeAt(0)));
-}
+import { validateEmail, validatePhoneForCountry } from "@/lib/validators";
+import { isoToFlag, DIAL_CODES } from "@/lib/dialCodes";
 
 // We currently serve Australia, New Zealand, the United States & Canada.
 // Other countries are shown for context but disabled (visual only, per request).
@@ -40,7 +36,7 @@ const CITIES_BY_COUNTRY = {
 
 const CLASSES = [
   "Kindergarten", "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5",
-  "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12",
+  "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12", "Other",
 ];
 
 const SUBJECTS = [
@@ -64,26 +60,29 @@ const TZ_PRIMARY = [
 ];
 const TZ_OTHER = ["Asia/Kolkata", "Asia/Singapore", "Asia/Dubai", "Europe/London", "Europe/Dublin", "Europe/Berlin"];
 
-// Phone country/dial codes — default falls back to Australia (+61)
-const DIAL_CODES = [
-  { iso: "AU", dial: "+61", name: "Australia" },
-  { iso: "NZ", dial: "+64", name: "New Zealand" },
-  { iso: "US", dial: "+1", name: "United States" },
-  { iso: "GB", dial: "+44", name: "United Kingdom" },
-  { iso: "CA", dial: "+1", name: "Canada" },
-  { iso: "IN", dial: "+91", name: "India" },
-  { iso: "SG", dial: "+65", name: "Singapore" },
-  { iso: "AE", dial: "+971", name: "United Arab Emirates" },
-  { iso: "IE", dial: "+353", name: "Ireland" },
-  { iso: "DE", dial: "+49", name: "Germany" },
-  { iso: "CN", dial: "+86", name: "China" },
-  { iso: "FR", dial: "+33", name: "France" },
-  { iso: "ZA", dial: "+27", name: "South Africa" },
-  { iso: "MY", dial: "+60", name: "Malaysia" },
-  { iso: "PH", dial: "+63", name: "Philippines" },
-  { iso: "PK", dial: "+92", name: "Pakistan" },
-  { iso: "SA", dial: "+966", name: "Saudi Arabia" },
-];
+// Human-friendly labels — the raw IANA name (e.g. "America/Toronto") doesn't
+// distinguish US from Canada, and "Pacific/Auckland" doesn't say "New Zealand".
+const TZ_LABELS = {
+  "Australia/Sydney": "Sydney, Australia",
+  "Australia/Melbourne": "Melbourne, Australia",
+  "Australia/Perth": "Perth, Australia",
+  "Australia/Brisbane": "Brisbane, Australia",
+  "Australia/Adelaide": "Adelaide, Australia",
+  "Pacific/Auckland": "Auckland, New Zealand",
+  "America/New_York": "New York, United States",
+  "America/Chicago": "Chicago, United States",
+  "America/Denver": "Denver, United States",
+  "America/Los_Angeles": "Los Angeles, United States",
+  "America/Toronto": "Toronto, Canada",
+  "America/Vancouver": "Vancouver, Canada",
+  "Asia/Kolkata": "India",
+  "Asia/Singapore": "Singapore",
+  "Asia/Dubai": "Dubai, UAE",
+  "Europe/London": "London, United Kingdom",
+  "Europe/Dublin": "Dublin, Ireland",
+  "Europe/Berlin": "Berlin, Germany",
+};
+const tzLabel = (t) => TZ_LABELS[t] || t.replace("_", " ");
 
 // Returns wall-clock "now" as it would read on a clock in the given IANA
 // timezone (used only for comparing hour/date fields, not real epoch math).
@@ -115,11 +114,12 @@ export default function BookDemo() {
   });
   const [time, setTime] = useState("16:00");
   const [tz, setTz] = useState("Australia/Sydney");
+  const [dateOpen, setDateOpen] = useState(false);
 
   const [form, setForm] = useState({
     parent_name: "", student_name: "", email: "", phone: "",
     country: "Australia", city: "Sydney", city_other: "",
-    student_class: "Grade 8", subject: "Mathematics", subject_other: "",
+    student_class: "Grade 8", class_other: "", subject: "Mathematics", subject_other: "",
     additional_notes: "",
   });
   const [dialCode, setDialCode] = useState("+61");
@@ -196,6 +196,7 @@ export default function BookDemo() {
 
   const displayCountry = form.country;
   const displayCity = form.city === "Other" && form.city_other ? form.city_other : form.city;
+  const displayClass = form.student_class === "Other" && form.class_other ? form.class_other : form.student_class;
   const displaySubject = form.subject === "Other" && form.subject_other ? form.subject_other : form.subject;
 
   const validateDetails = () => {
@@ -204,18 +205,20 @@ export default function BookDemo() {
     if (form.student_name.trim().length < 2) errs.student_name = "Please enter the student's name.";
     const emailErr = validateEmail(form.email);
     if (emailErr) errs.email = emailErr;
-    const phoneErr = validatePhone(`${dialCode}${form.phone}`);
+    const phoneErr = validatePhoneForCountry(dialCode, form.phone);
     if (phoneErr) errs.phone = phoneErr;
     if (form.city === "Other" && !form.city_other.trim()) errs.city_other = "Please specify your city.";
     if (form.subject === "Other" && !form.subject_other.trim()) errs.subject_other = "Please specify the subject.";
+    if (form.student_class === "Other" && !form.class_other.trim()) errs.class_other = "Please specify the class/grade.";
     setFieldErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
   const detailsValid = form.parent_name.trim().length >= 2 && form.student_name.trim().length >= 2
-    && !validateEmail(form.email) && !validatePhone(`${dialCode}${form.phone}`)
+    && !validateEmail(form.email) && !validatePhoneForCountry(dialCode, form.phone)
     && (form.city !== "Other" || form.city_other.trim())
-    && (form.subject !== "Other" || form.subject_other.trim());
+    && (form.subject !== "Other" || form.subject_other.trim())
+    && (form.student_class !== "Other" || form.class_other.trim());
 
   const submit = async () => {
     setBusy(true);
@@ -296,8 +299,8 @@ export default function BookDemo() {
 
                 <div className="mt-6 grid sm:grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-xs">Preferred date</Label>
-                    <Popover>
+                    <Label className="text-xs">Preferred Date</Label>
+                    <Popover open={dateOpen} onOpenChange={setDateOpen}>
                       <PopoverTrigger asChild>
                         <Button variant="outline" className="w-full mt-1.5 rounded-xl justify-start font-normal" data-testid="demo-date-btn">
                           <CalendarIcon size={14} className="mr-2" />
@@ -308,7 +311,7 @@ export default function BookDemo() {
                         <CalendarComp
                           mode="single"
                           selected={date}
-                          onSelect={(d) => d && setDate(d)}
+                          onSelect={(d) => { if (d) { setDate(d); setDateOpen(false); } }}
                           disabled={(d) => d < new Date(new Date().setHours(0, 0, 0, 0)) || d.getDay() === 0}
                           initialFocus
                         />
@@ -316,7 +319,7 @@ export default function BookDemo() {
                     </Popover>
                   </div>
                   <div>
-                    <Label className="text-xs">Preferred time</Label>
+                    <Label className="text-xs">Preferred Time</Label>
                     <Select value={time} onValueChange={setTime}>
                       <SelectTrigger className="mt-1.5 rounded-xl" data-testid="demo-time-select"><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -332,21 +335,21 @@ export default function BookDemo() {
                     )}
                   </div>
                   <div className="sm:col-span-2">
-                    <Label className="text-xs">Your timezone</Label>
+                    <Label className="text-xs">Your Timezone</Label>
                     <Select value={tz} onValueChange={setTz}>
                       <SelectTrigger className="mt-1.5 rounded-xl" data-testid="demo-tz-select"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectGroup>
                           <SelectLabel className="text-primary">Australia, NZ, US &amp; Canada</SelectLabel>
                           {TZ_PRIMARY.map((t) => (
-                            <SelectItem key={t} value={t} className="font-medium">{t.replace("_", " ")}</SelectItem>
+                            <SelectItem key={t} value={t} className="font-medium">{tzLabel(t)}</SelectItem>
                           ))}
                         </SelectGroup>
                         <SelectSeparator />
                         <SelectGroup>
                           <SelectLabel className="text-muted-foreground">Other timezones (view only)</SelectLabel>
                           {TZ_OTHER.map((t) => (
-                            <SelectItem key={t} value={t} disabled className="text-muted-foreground opacity-50">{t.replace("_", " ")}</SelectItem>
+                            <SelectItem key={t} value={t} disabled className="text-muted-foreground opacity-50">{tzLabel(t)}</SelectItem>
                           ))}
                         </SelectGroup>
                       </SelectContent>
@@ -369,21 +372,20 @@ export default function BookDemo() {
                   <ArrowLeft size={12} /> Back to date/time
                 </button>
                 <h2 className="font-display text-xl">Tell us about the student</h2>
-                <p className="text-sm text-muted-foreground mt-1">All fields are dropdowns where possible for speed.</p>
 
                 <div className="mt-6 grid sm:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="parent_name">Parent name *</Label>
+                    <Label htmlFor="parent_name">Parent Name *</Label>
                     <Input id="parent_name" required value={form.parent_name} onChange={(e) => setField("parent_name", e.target.value)} className="mt-1.5 rounded-xl" data-testid="demo-parent-name" />
                     {fieldErrors.parent_name && <p className="mt-1 text-xs text-destructive">{fieldErrors.parent_name}</p>}
                   </div>
                   <div>
-                    <Label htmlFor="student_name">Student name *</Label>
+                    <Label htmlFor="student_name">Student Name *</Label>
                     <Input id="student_name" required value={form.student_name} onChange={(e) => setField("student_name", e.target.value)} className="mt-1.5 rounded-xl" data-testid="demo-student-name" />
                     {fieldErrors.student_name && <p className="mt-1 text-xs text-destructive">{fieldErrors.student_name}</p>}
                   </div>
                   <div>
-                    <Label htmlFor="phone">Phone number *</Label>
+                    <Label htmlFor="phone">Phone Number *</Label>
                     <div className="mt-1.5 flex gap-2">
                       <Select value={dialCode} onValueChange={setDialCode}>
                         <SelectTrigger className="rounded-xl w-[6.5rem] shrink-0" data-testid="demo-dial-code"><SelectValue /></SelectTrigger>
@@ -433,16 +435,20 @@ export default function BookDemo() {
                     {fieldErrors.city_other && <p className="mt-1 text-xs text-destructive">{fieldErrors.city_other}</p>}
                   </div>
                   <div>
-                    <Label>Student class *</Label>
+                    <Label>Student Class *</Label>
                     <Select value={form.student_class} onValueChange={(v) => setField("student_class", v)}>
                       <SelectTrigger className="mt-1.5 rounded-xl" data-testid="demo-class"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {CLASSES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                       </SelectContent>
                     </Select>
+                    {form.student_class === "Other" && (
+                      <Input className="mt-2 rounded-xl" placeholder="Please specify the class/grade" value={form.class_other} onChange={(e) => setField("class_other", e.target.value)} data-testid="demo-class-other" />
+                    )}
+                    {fieldErrors.class_other && <p className="mt-1 text-xs text-destructive">{fieldErrors.class_other}</p>}
                   </div>
                   <div>
-                    <Label>Subject for demo *</Label>
+                    <Label>Subject for Demo *</Label>
                     <Select value={form.subject} onValueChange={(v) => setField("subject", v)}>
                       <SelectTrigger className="mt-1.5 rounded-xl" data-testid="demo-subject"><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -488,7 +494,7 @@ export default function BookDemo() {
                   <div className="flex justify-between py-1"><span className="text-muted-foreground">Location</span><span className="font-medium">{displayCity}, {displayCountry}</span></div>
                   <div className="flex justify-between py-1"><span className="text-muted-foreground">Class</span><span className="font-medium">{form.student_class}</span></div>
                   <div className="flex justify-between py-1"><span className="text-muted-foreground">Subject</span><span className="font-medium">{displaySubject}</span></div>
-                  <div className="flex justify-between py-1 border-t border-border mt-2 pt-2"><span className="text-muted-foreground">Date &amp; time</span><span className="font-medium">{fmtDate(date)} at {time} ({tz.replace("_", " ")})</span></div>
+                  <div className="flex justify-between py-1 border-t border-border mt-2 pt-2"><span className="text-muted-foreground">Date &amp; time</span><span className="font-medium">{fmtDate(date)} at {time} ({tzLabel(tz)})</span></div>
                   {form.additional_notes && (
                     <div className="pt-2 border-t border-border mt-2"><span className="text-muted-foreground block mb-1">Notes</span><span>{form.additional_notes}</span></div>
                   )}
@@ -540,7 +546,7 @@ export default function BookDemo() {
                   <div className="flex justify-between py-1"><span className="text-muted-foreground">Subject</span><span>{displaySubject}</span></div>
                   <div className="flex justify-between py-1"><span className="text-muted-foreground">Class</span><span>{form.student_class}</span></div>
                   <div className="flex justify-between py-1"><span className="text-muted-foreground">Date</span><span>{fmtDate(date)}</span></div>
-                  <div className="flex justify-between py-1"><span className="text-muted-foreground">Time</span><span>{time} ({tz.replace("_", " ")})</span></div>
+                  <div className="flex justify-between py-1"><span className="text-muted-foreground">Time</span><span>{time} ({tzLabel(tz)})</span></div>
                   <div className="flex justify-between py-1 border-t border-border mt-2 pt-2"><span className="text-muted-foreground">Booking ID</span><span className="font-mono text-sm font-semibold">#{bookingId}</span></div>
                 </motion.div>
 
