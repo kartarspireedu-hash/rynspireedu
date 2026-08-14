@@ -13,8 +13,19 @@ import api from "@/lib/api";
 import { validateEmail, validatePhoneForCountry } from "@/lib/validators";
 import { isoToFlag, DIAL_CODES } from "@/lib/dialCodes";
 
+const REASONS = [
+  "Parent / Student Enquiry",
+  "Tutor Application",
+  "Billing / Payment Support",
+  "Business / Partnership",
+  "Media / Press",
+  "Advertising / Promotion",
+  "General Enquiry",
+  "Other",
+];
+
 export default function ContactUs() {
-  const [form, setForm] = useState({ name: "", email: "", phone: "", subject: "", message: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", reason: "", reason_other: "", subject: "", message: "" });
   const [dialCode, setDialCode] = useState("+61");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
@@ -41,6 +52,9 @@ export default function ContactUs() {
       const phoneErr = validatePhoneForCountry(dialCode, form.phone);
       if (phoneErr) errs.phone = phoneErr;
     }
+    if (!form.reason) errs.reason = "Please select a reason.";
+    if (form.reason === "Other" && !form.reason_other.trim()) errs.reason_other = "Please specify.";
+    if (!form.subject.trim()) errs.subject = "Please enter a subject.";
     if (!form.message.trim()) errs.message = "Please enter a message.";
     setFieldErrors(errs);
     return Object.keys(errs).length === 0;
@@ -51,7 +65,14 @@ export default function ContactUs() {
     if (!validate()) return;
     setBusy(true);
     try {
-      await api.post("/contact", { ...form, phone: form.phone.trim() ? `${dialCode} ${form.phone}`.trim() : "" });
+      const reason = form.reason === "Other" && form.reason_other.trim() ? form.reason_other.trim() : form.reason;
+      await api.post("/contact", {
+        name: form.name,
+        email: form.email,
+        phone: form.phone.trim() ? `${dialCode} ${form.phone}`.trim() : "",
+        subject: `[${reason}] ${form.subject}`,
+        message: form.message,
+      });
       setSent(true);
       toast.success("Message sent! We'll reply within 24 hours.");
     } catch (e) {
@@ -89,16 +110,21 @@ export default function ContactUs() {
               </div>
               <h2 className="mt-4 font-display text-2xl">Message sent!</h2>
               <p className="mt-2 text-muted-foreground text-sm">Thanks, {form.name.split(" ")[0]}. We'll get back to you within 24 hours.</p>
-              <Button variant="outline" className="mt-6 pill-btn" onClick={() => { setSent(false); setForm({ name: "", email: "", phone: "", subject: "", message: "" }); }}>
+              <Button variant="outline" className="mt-6 pill-btn" onClick={() => { setSent(false); setForm({ name: "", email: "", phone: "", reason: "", reason_other: "", subject: "", message: "" }); }}>
                 Send another message
               </Button>
             </div>
           ) : (
-            <form onSubmit={submit} className="grid sm:grid-cols-2 gap-4" data-testid="contact-form">
+            <form onSubmit={submit} className="grid gap-4" data-testid="contact-form">
               <div>
                 <Label htmlFor="c-name">Name *</Label>
                 <Input id="c-name" required value={form.name} onChange={(e) => setField("name", e.target.value)} className="mt-1.5 rounded-xl" data-testid="contact-name" />
                 {fieldErrors.name && <p className="mt-1 text-xs text-destructive">{fieldErrors.name}</p>}
+              </div>
+              <div>
+                <Label htmlFor="c-email">Email *</Label>
+                <Input id="c-email" required type="email" value={form.email} onChange={(e) => setField("email", e.target.value)} className="mt-1.5 rounded-xl" data-testid="contact-email" />
+                {fieldErrors.email && <p className="mt-1 text-xs text-destructive">{fieldErrors.email}</p>}
               </div>
               <div>
                 <Label htmlFor="c-phone">Phone (Optional)</Label>
@@ -115,21 +141,31 @@ export default function ContactUs() {
                 </div>
                 {fieldErrors.phone && <p className="mt-1 text-xs text-destructive">{fieldErrors.phone}</p>}
               </div>
-              <div className="sm:col-span-2">
-                <Label htmlFor="c-email">Email *</Label>
-                <Input id="c-email" required type="email" value={form.email} onChange={(e) => setField("email", e.target.value)} className="mt-1.5 rounded-xl" data-testid="contact-email" />
-                {fieldErrors.email && <p className="mt-1 text-xs text-destructive">{fieldErrors.email}</p>}
+              <div>
+                <Label>Reason for Contacting *</Label>
+                <Select value={form.reason} onValueChange={(v) => setField("reason", v)}>
+                  <SelectTrigger className="mt-1.5 rounded-xl" data-testid="contact-reason"><SelectValue placeholder="Select a reason" /></SelectTrigger>
+                  <SelectContent>
+                    {REASONS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                {form.reason === "Other" && (
+                  <Input className="mt-2 rounded-xl" placeholder="Please specify" value={form.reason_other} onChange={(e) => setField("reason_other", e.target.value)} data-testid="contact-reason-other" />
+                )}
+                {fieldErrors.reason && <p className="mt-1 text-xs text-destructive">{fieldErrors.reason}</p>}
+                {fieldErrors.reason_other && <p className="mt-1 text-xs text-destructive">{fieldErrors.reason_other}</p>}
               </div>
-              <div className="sm:col-span-2">
-                <Label htmlFor="c-subject">Subject</Label>
-                <Input id="c-subject" value={form.subject} onChange={(e) => setField("subject", e.target.value)} placeholder="What's this about?" className="mt-1.5 rounded-xl" data-testid="contact-subject" />
+              <div>
+                <Label htmlFor="c-subject">Subject *</Label>
+                <Input id="c-subject" required value={form.subject} onChange={(e) => setField("subject", e.target.value)} placeholder="What's this about?" className="mt-1.5 rounded-xl" data-testid="contact-subject" />
+                {fieldErrors.subject && <p className="mt-1 text-xs text-destructive">{fieldErrors.subject}</p>}
               </div>
-              <div className="sm:col-span-2">
+              <div>
                 <Label htmlFor="c-message">Message *</Label>
                 <Textarea id="c-message" required className="mt-1.5 rounded-xl min-h-32" placeholder="How can we help?" value={form.message} onChange={(e) => setField("message", e.target.value)} data-testid="contact-message" />
                 {fieldErrors.message && <p className="mt-1 text-xs text-destructive">{fieldErrors.message}</p>}
               </div>
-              <div className="sm:col-span-2 flex justify-end">
+              <div className="flex justify-end">
                 <Button type="submit" disabled={busy} className="pill-btn bg-primary text-primary-foreground hover:bg-accent hover:text-accent-foreground" data-testid="contact-submit-btn">
                   {busy ? (<><Loader2 size={14} className="mr-1.5 animate-spin" /> Sending…</>) : (<>Send Message <Send size={14} className="ml-1.5" /></>)}
                 </Button>

@@ -8,6 +8,7 @@ import os
 import io
 import csv
 import uuid
+import calendar
 import secrets
 import hmac
 import hashlib
@@ -564,6 +565,15 @@ async def create_demo(payload: DemoBookingIn, background: BackgroundTasks):
     demo_dt = datetime.strptime(payload.demo_date, "%Y-%m-%d")
     if demo_dt.weekday() == 6:  # Monday=0 ... Sunday=6
         raise HTTPException(status_code=400, detail="We're closed on Sundays — please choose another day.")
+
+    today = datetime.now(timezone.utc).date()
+    _m = today.month + 2
+    _y = today.year + (1 if _m > 12 else 0)
+    _m = _m - 12 if _m > 12 else _m
+    _last_day = calendar.monthrange(_y, _m)[1]
+    max_date = today.replace(year=_y, month=_m, day=min(today.day, _last_day))
+    if demo_dt.date() > max_date:
+        raise HTTPException(status_code=400, detail="Demo sessions can only be booked up to 2 months in advance.")
 
     try:
         slot_dt = datetime.strptime(f"{payload.demo_date} {payload.demo_time}", "%Y-%m-%d %H:%M").replace(

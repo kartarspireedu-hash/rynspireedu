@@ -60,29 +60,48 @@ const TZ_PRIMARY = [
 ];
 const TZ_OTHER = ["Asia/Kolkata", "Asia/Singapore", "Asia/Dubai", "Europe/London", "Europe/Dublin", "Europe/Berlin"];
 
-// Human-friendly labels — the raw IANA name (e.g. "America/Toronto") doesn't
-// distinguish US from Canada, and "Pacific/Auckland" doesn't say "New Zealand".
+// Human-friendly labels, Country first then City — the raw IANA name (e.g.
+// "America/Toronto") doesn't distinguish US from Canada, and "Pacific/Auckland"
+// doesn't say "New Zealand".
 const TZ_LABELS = {
-  "Australia/Sydney": "Sydney, Australia",
-  "Australia/Melbourne": "Melbourne, Australia",
-  "Australia/Perth": "Perth, Australia",
-  "Australia/Brisbane": "Brisbane, Australia",
-  "Australia/Adelaide": "Adelaide, Australia",
-  "Pacific/Auckland": "Auckland, New Zealand",
-  "America/New_York": "New York, United States",
-  "America/Chicago": "Chicago, United States",
-  "America/Denver": "Denver, United States",
-  "America/Los_Angeles": "Los Angeles, United States",
-  "America/Toronto": "Toronto, Canada",
-  "America/Vancouver": "Vancouver, Canada",
+  "Australia/Sydney": "Australia, Sydney",
+  "Australia/Melbourne": "Australia, Melbourne",
+  "Australia/Perth": "Australia, Perth",
+  "Australia/Brisbane": "Australia, Brisbane",
+  "Australia/Adelaide": "Australia, Adelaide",
+  "Pacific/Auckland": "New Zealand, Auckland",
+  "America/New_York": "United States, New York",
+  "America/Chicago": "United States, Chicago",
+  "America/Denver": "United States, Denver",
+  "America/Los_Angeles": "United States, Los Angeles",
+  "America/Toronto": "Canada, Toronto",
+  "America/Vancouver": "Canada, Vancouver",
   "Asia/Kolkata": "India",
   "Asia/Singapore": "Singapore",
-  "Asia/Dubai": "Dubai, UAE",
-  "Europe/London": "London, United Kingdom",
-  "Europe/Dublin": "Dublin, Ireland",
-  "Europe/Berlin": "Berlin, Germany",
+  "Asia/Dubai": "UAE, Dubai",
+  "Europe/London": "United Kingdom, London",
+  "Europe/Dublin": "Ireland, Dublin",
+  "Europe/Berlin": "Germany, Berlin",
 };
-const tzLabel = (t) => TZ_LABELS[t] || t.replace("_", " ");
+
+// Live UTC offset code (e.g. "GMT+10") — computed fresh so daylight saving
+// is always reflected correctly, rather than a hardcoded abbreviation that
+// could go stale (e.g. AEST vs AEDT).
+function tzOffsetCode(tz) {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "shortOffset" }).formatToParts(new Date());
+    const part = parts.find((p) => p.type === "timeZoneName");
+    return part ? part.value : "";
+  } catch {
+    return "";
+  }
+}
+
+const tzLabel = (t) => {
+  const base = TZ_LABELS[t] || t.replace("_", " ");
+  const offset = tzOffsetCode(t);
+  return offset ? `${base} (${offset})` : base;
+};
 
 // Returns wall-clock "now" as it would read on a clock in the given IANA
 // timezone (used only for comparing hour/date fields, not real epoch math).
@@ -312,7 +331,12 @@ export default function BookDemo() {
                           mode="single"
                           selected={date}
                           onSelect={(d) => { if (d) { setDate(d); setDateOpen(false); } }}
-                          disabled={(d) => d < new Date(new Date().setHours(0, 0, 0, 0)) || d.getDay() === 0}
+                          disabled={(d) => {
+                            const today = new Date(new Date().setHours(0, 0, 0, 0));
+                            const maxDate = new Date(today);
+                            maxDate.setMonth(maxDate.getMonth() + 2);
+                            return d < today || d > maxDate || d.getDay() === 0;
+                          }}
                           initialFocus
                         />
                       </PopoverContent>

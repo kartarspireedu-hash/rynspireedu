@@ -62,7 +62,7 @@ export default function Pricing() {
                   <h3 className="font-display text-xl">{p.name}</h3>
                 </div>
                 {p.tag && (
-                  <span className={`mt-2 w-fit text-[11px] px-2 py-1 rounded-full border ${p.highlight ? "bg-accent/25 border-accent/60 text-accent-foreground" : "bg-secondary border-border text-primary"}`}>
+                  <span className={`gold-shine mt-2 w-fit text-[11px] px-2 py-1 rounded-full border font-medium ${p.highlight ? "bg-accent border-accent/60 text-accent-foreground" : "bg-secondary border-border text-primary"}`}>
                     {p.tag}
                   </span>
                 )}
