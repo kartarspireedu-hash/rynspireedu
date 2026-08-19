@@ -8,6 +8,7 @@ import { CurrencyProvider } from "@/context/CurrencyContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import TawkChat from "@/components/TawkChat";
 import MetaPixel from "@/components/MetaPixel";
+import GoogleTagManager from "@/components/GoogleTagManager";
 import CookieConsentBanner from "@/components/CookieConsentBanner";
 import ScrollToTop from "@/components/ScrollToTop";
 
@@ -53,6 +54,7 @@ function App() {
             <BrowserRouter>
               <TawkChat />
               <MetaPixel />
+              <GoogleTagManager />
               <CookieConsentBanner />
               <ScrollToTop />
               <Suspense fallback={<RouteFallback />}>

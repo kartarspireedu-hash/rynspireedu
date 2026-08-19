@@ -53,7 +53,7 @@ export default function PrivacyPolicy() {
             <ul className="mt-3 space-y-2 list-disc pl-5">
               <li>directly from you when you complete a form on our website, a Meta (Facebook/Instagram) lead form, or our booking page;</li>
               <li>when you contact us by phone, email, or messaging;</li>
-              <li>automatically through cookies, our website analytics, and the Meta Pixel when you visit our site.</li>
+              <li>automatically through cookies, our website analytics, and tools such as the Meta Pixel and Google Tag Manager when you visit our site.</li>
             </ul>
           </div>
 
@@ -114,13 +114,13 @@ export default function PrivacyPolicy() {
           </div>
 
           <div>
-            <h2 className="font-display text-xl">8. Cookies, analytics, and the Meta Pixel</h2>
+            <h2 className="font-display text-xl">8. Cookies, analytics, and advertising measurement</h2>
             <p className="mt-3">
               We use cookies and similar technologies, categorised as follows:
             </p>
             <ul className="mt-3 space-y-2 list-disc pl-5">
               <li><strong>Essential and service-necessary cookies</strong> — required for the Website to function and for you to be able to contact us (including via our live chat widget, which loads on every visit so that support is always available). These cannot be disabled.</li>
-              <li><strong>Optional analytics &amp; ad-measurement cookies</strong> — including the Meta Pixel, which allows us to measure the effectiveness of our advertising and understand actions taken on our site. These are only activated with your consent.</li>
+              <li><strong>Optional analytics &amp; ad-measurement cookies</strong> — including the Meta Pixel and Google Tag Manager, which allow us to measure the effectiveness of our advertising and understand actions taken on our site. These are only activated with your consent.</li>
             </ul>
             <p className="mt-3">
               On your first visit, you will be presented with a cookie banner allowing you to accept or
