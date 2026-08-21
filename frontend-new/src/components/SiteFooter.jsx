@@ -84,6 +84,11 @@ export default function SiteFooter() {
         <div>
           <h4 className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-4">Contact</h4>
           <ul className="space-y-2 text-sm">
+            <li>
+              <a href="https://wa.me/61480851790?text=Hi%20RynSpireEdu!%20I'd%20like%20to%20know%20more%20about%20your%20tutoring%20plans." target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-primary font-medium">
+                <span aria-hidden>🇦🇺</span> WhatsApp: +61 480 851 790
+              </a>
+            </li>
             <li><a href="mailto:care@rynspireedu.com" className="hover:text-primary">care@rynspireedu.com</a></li>
             <li>Sydney · Auckland · Toronto</li>
             <li><button type="button" onClick={() => window.dispatchEvent(new CustomEvent("rse-open-cookie-prefs"))} className="hover:text-primary underline-offset-2 text-left">Cookie Preferences</button></li>

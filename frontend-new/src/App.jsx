@@ -9,6 +9,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import TawkChat from "@/components/TawkChat";
 import MetaPixel from "@/components/MetaPixel";
 import GoogleTagManager from "@/components/GoogleTagManager";
+import FloatingWhatsApp from "@/components/FloatingWhatsApp";
 import CookieConsentBanner from "@/components/CookieConsentBanner";
 import ScrollToTop from "@/components/ScrollToTop";
 
@@ -55,6 +56,7 @@ function App() {
               <TawkChat />
               <MetaPixel />
               <GoogleTagManager />
+              <FloatingWhatsApp />
               <CookieConsentBanner />
               <ScrollToTop />
               <Suspense fallback={<RouteFallback />}>

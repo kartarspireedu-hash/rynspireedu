@@ -722,6 +722,20 @@ def _razorpay_client() -> razorpay.Client:
 async def payments_config():
     return {"key_id": os.environ.get("RAZORPAY_KEY_ID", "")}
 
+@api_router.get("/payments/diagnostics")
+async def payments_diagnostics():
+    """Safe, secret-free check of whether Razorpay env vars are actually
+    present on THIS running process — never returns the real values."""
+    key = os.environ.get("RAZORPAY_KEY_ID", "")
+    secret = os.environ.get("RAZORPAY_KEY_SECRET", "")
+    return {
+        "razorpay_key_id_present": bool(key),
+        "razorpay_key_id_length": len(key),
+        "razorpay_key_id_prefix": key[:8] if key else "",
+        "razorpay_key_secret_present": bool(secret),
+        "razorpay_key_secret_length": len(secret),
+    }
+
 @api_router.post("/payments/create-order")
 async def create_order(payload: CreateOrderIn):
     if payload.amount < 100:
