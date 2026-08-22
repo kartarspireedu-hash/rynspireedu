@@ -132,6 +132,8 @@ RATE_LIMITED_PATHS = {
     "/api/tawk-lead": (10, 300),
     "/api/payments/create-order": (10, 300),
     "/api/auth/register": (5, 300),
+    "/api/otp/send": (5, 600),       # 5 OTP sends / 10 minutes per IP
+    "/api/otp/verify": (10, 600),
 }
 
 @app.middleware("http")
@@ -231,6 +233,7 @@ class RegisterInput(BaseModel):
     role: Role = "student"
     grade: Optional[str] = None
     country: Optional[str] = "Australia"
+    verify_token: str = ""
 
 class LoginInput(BaseModel):
     email: EmailStr
@@ -266,6 +269,7 @@ class DemoBookingIn(BaseModel):
     additional_notes: Optional[str] = Field(default="", max_length=1000)
     currency: Optional[str] = "USD"
     accepted_terms: bool = False
+    verify_token: str = ""
 
     @field_validator("email")
     @classmethod
@@ -353,6 +357,102 @@ async def send_email(to_addrs: list, subject: str, html: str, reply_to: Optional
     except Exception as e:
         logger.warning("send_email wrapper error: %s", e)
 
+# ------------------------------------------------------------------
+# Email OTP — shared verification system used by Register, Book Demo,
+# and Contact Us. Free (rides on our existing Brevo SMTP, no paid service).
+#
+# Flow:
+#   1. POST /api/otp/send    {email}         -> emails a 6-digit code, valid 10 min
+#   2. POST /api/otp/verify  {email, code}   -> on match, returns a one-time
+#                                               `verify_token` valid 15 min
+#   3. The real form submission includes that `verify_token`; the backend
+#      checks it matches the submitted email and hasn't been used/expired.
+# ------------------------------------------------------------------
+OTP_TTL_MINUTES = 10
+VERIFY_TOKEN_TTL_MINUTES = 15
+
+class OtpSendIn(BaseModel):
+    email: EmailStr
+
+    @field_validator("email")
+    @classmethod
+    def _not_disposable(cls, v):
+        return _reject_disposable_email(v)
+
+class OtpVerifyIn(BaseModel):
+    email: EmailStr
+    code: str = Field(min_length=4, max_length=8)
+
+def _otp_email_html(code: str) -> str:
+    return f"""
+    <div style="font-family:Outfit,Arial,sans-serif;max-width:480px;margin:0 auto;color:#1a1235;">
+      <h2 style="color:#3b1a70;">Your <span style="color:#f5c542;">Ryn</span><span style="color:#7c3aed;">SpireEdu</span> verification code</h2>
+      <p>Use this code to verify your email. It expires in {OTP_TTL_MINUTES} minutes.</p>
+      <p style="font-size:32px;font-weight:800;letter-spacing:8px;color:#3b1a70;margin:24px 0;">{code}</p>
+      <p style="color:#6b7280;font-size:13px;">If you didn't request this, you can safely ignore this email.</p>
+    </div>
+    """
+
+@api_router.post("/otp/send")
+async def otp_send(payload: OtpSendIn, background: BackgroundTasks):
+    email = payload.email.lower().strip()
+    code = f"{secrets.randbelow(1000000):06d}"
+    await db.email_otps.update_one(
+        {"email": email},
+        {"$set": {
+            "email": email,
+            "code_hash": hash_password(code),
+            "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=OTP_TTL_MINUTES)).isoformat(),
+            "attempts": 0,
+            "verify_token": None,
+        }},
+        upsert=True,
+    )
+    background.add_task(_send_email_sync, [email], "Your RynSpireEdu verification code", _otp_email_html(code))
+    return {"ok": True, "message": f"Code sent — valid for {OTP_TTL_MINUTES} minutes."}
+
+@api_router.post("/otp/verify")
+async def otp_verify(payload: OtpVerifyIn):
+    email = payload.email.lower().strip()
+    rec = await db.email_otps.find_one({"email": email})
+    if not rec:
+        raise HTTPException(status_code=400, detail="Please request a new code.")
+    if rec.get("attempts", 0) >= 6:
+        raise HTTPException(status_code=429, detail="Too many attempts — please request a new code.")
+    expires = rec.get("expires_at")
+    if not expires or datetime.fromisoformat(expires) < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="That code has expired — please request a new one.")
+    if not verify_password(payload.code.strip(), rec.get("code_hash", "")):
+        await db.email_otps.update_one({"email": email}, {"$inc": {"attempts": 1}})
+        raise HTTPException(status_code=400, detail="Incorrect code — please try again.")
+
+    token = secrets.token_urlsafe(24)
+    await db.email_otps.update_one(
+        {"email": email},
+        {"$set": {
+            "verify_token": token,
+            "verify_token_expires": (datetime.now(timezone.utc) + timedelta(minutes=VERIFY_TOKEN_TTL_MINUTES)).isoformat(),
+            "verify_token_used": False,
+        }}
+    )
+    return {"ok": True, "verify_token": token}
+
+async def _consume_otp_token(email: str, token: str) -> None:
+    """Raises HTTPException if the token is missing/expired/wrong-email/already used.
+    Consumes (marks used) the token on success, so it can't be replayed."""
+    if not token:
+        raise HTTPException(status_code=400, detail="Please verify your email first.")
+    email = email.lower().strip()
+    rec = await db.email_otps.find_one({"email": email})
+    if not rec or rec.get("verify_token") != token:
+        raise HTTPException(status_code=400, detail="Email verification failed — please verify your email again.")
+    if rec.get("verify_token_used"):
+        raise HTTPException(status_code=400, detail="This verification has already been used — please verify again.")
+    expires = rec.get("verify_token_expires")
+    if not expires or datetime.fromisoformat(expires) < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Verification expired — please verify your email again.")
+    await db.email_otps.update_one({"email": email}, {"$set": {"verify_token_used": True}})
+
 def _demo_confirmation_html(b: dict) -> str:
     return f"""
     <div style="font-family:Outfit,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1a1235;">
@@ -429,6 +529,7 @@ async def register(payload: RegisterInput, response: Response):
     email = payload.email.lower().strip()
     if await db.users.find_one({"email": email}):
         raise HTTPException(status_code=400, detail="Email already registered")
+    await _consume_otp_token(email, payload.verify_token)
     uid = str(uuid.uuid4())
     doc = {"id": uid, "name": payload.name.strip(), "email": email,
            "password_hash": hash_password(payload.password), "role": payload.role,
@@ -561,6 +662,7 @@ async def demo_availability(date: str):
 async def create_demo(payload: DemoBookingIn, background: BackgroundTasks):
     if not payload.accepted_terms:
         raise HTTPException(status_code=400, detail="Please accept the Terms & Conditions to book a demo.")
+    await _consume_otp_token(payload.email, payload.verify_token)
 
     demo_dt = datetime.strptime(payload.demo_date, "%Y-%m-%d")
     if demo_dt.weekday() == 6:  # Monday=0 ... Sunday=6
@@ -672,6 +774,7 @@ class ContactIn(BaseModel):
     phone: str | None = Field(default=None, max_length=30)
     subject: str | None = Field(default=None, max_length=150)
     message: str = Field(min_length=1, max_length=2000)
+    verify_token: str = ""
 
     @field_validator("email")
     @classmethod
@@ -687,6 +790,7 @@ class ContactIn(BaseModel):
 
 @api_router.post("/contact")
 async def contact(payload: ContactIn, background: BackgroundTasks):
+    await _consume_otp_token(payload.email, payload.verify_token)
     care = os.environ.get("CARE_EMAIL", "care@rynspireedu.com")
     user_html = f"""
     <div style="font-family:Outfit,Arial,sans-serif;max-width:520px;color:#1a1235;">
