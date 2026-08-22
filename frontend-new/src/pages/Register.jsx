@@ -8,14 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GraduationCap } from "lucide-react";
-import EmailOtpField from "@/components/EmailOtpField";
 
 const roleHome = { student: "/app/student", parent: "/app/student", tutor: "/app/tutor" };
 
 export default function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: "", email: "", password: "", role: "student", grade: "Year 10", country: "Australia", verify_token: "" });
+  const [form, setForm] = useState({ name: "", email: "", password: "", role: "student", grade: "Year 10", country: "Australia" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -24,11 +23,6 @@ export default function Register() {
   const submit = async (e) => {
     e.preventDefault();
     setError("");
-    if (!form.verify_token) {
-      setError("Please verify your email before creating an account.");
-      toast.error("Please verify your email before creating an account.");
-      return;
-    }
     setBusy(true);
     const res = await register(form);
     setBusy(false);
@@ -64,7 +58,6 @@ export default function Register() {
             <div>
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" required value={form.email} onChange={(e) => setField("email", e.target.value)} className="mt-1.5 rounded-xl" data-testid="register-email-input" />
-              <EmailOtpField email={form.email} verifyToken={form.verify_token} onVerified={(tok) => setField("verify_token", tok)} onReset={() => setField("verify_token", "")} />
             </div>
             <div>
               <Label htmlFor="password">Password</Label>

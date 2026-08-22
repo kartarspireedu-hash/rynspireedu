@@ -16,7 +16,6 @@ import { Calendar as CalendarComp } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ArrowLeft, ArrowRight, CalendarIcon, CheckCircle2, Sparkles, Clock, Mail } from "lucide-react";
 import api from "@/lib/api";
-import EmailOtpField from "@/components/EmailOtpField";
 import { validateEmail, validatePhoneForCountry } from "@/lib/validators";
 import { isoToFlag, DIAL_CODES } from "@/lib/dialCodes";
 
@@ -148,7 +147,6 @@ export default function BookDemo() {
   const [bookingId, setBookingId] = useState("");
   const [bookedTimes, setBookedTimes] = useState([]);
   const [fieldErrors, setFieldErrors] = useState({});
-  const [verifyToken, setVerifyToken] = useState("");
   const pixelFiredRef = useRef(false);
 
   const dateKey = date.toISOString().slice(0, 10);
@@ -231,7 +229,6 @@ export default function BookDemo() {
     if (form.city === "Other" && !form.city_other.trim()) errs.city_other = "Please specify your city.";
     if (form.subject === "Other" && !form.subject_other.trim()) errs.subject_other = "Please specify the subject.";
     if (form.student_class === "Other" && !form.class_other.trim()) errs.class_other = "Please specify the class/grade.";
-    if (!verifyToken) errs.email = errs.email || "Please verify your email before continuing.";
     setFieldErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -240,8 +237,7 @@ export default function BookDemo() {
     && !validateEmail(form.email) && !validatePhoneForCountry(dialCode, form.phone)
     && (form.city !== "Other" || form.city_other.trim())
     && (form.subject !== "Other" || form.subject_other.trim())
-    && (form.student_class !== "Other" || form.class_other.trim())
-    && !!verifyToken;
+    && (form.student_class !== "Other" || form.class_other.trim());
 
   const submit = async () => {
     setBusy(true);
@@ -253,7 +249,6 @@ export default function BookDemo() {
         demo_time: time,
         timezone: tz,
         accepted_terms: agreed,
-        verify_token: verifyToken,
       };
       const { data } = await api.post("/demos", payload);
       setBookingId(data.booking_number || data.id);
@@ -431,7 +426,6 @@ export default function BookDemo() {
                   <div>
                     <Label htmlFor="email">Email *</Label>
                     <Input id="email" required type="email" value={form.email} onChange={(e) => setField("email", e.target.value)} className="mt-1.5 rounded-xl" data-testid="demo-email" />
-                    <EmailOtpField email={form.email} verifyToken={verifyToken} onVerified={setVerifyToken} onReset={() => setVerifyToken("")} />
                     {fieldErrors.email && <p className="mt-1 text-xs text-destructive">{fieldErrors.email}</p>}
                   </div>
                   <div>

@@ -12,7 +12,6 @@ import { Mail, Send, Loader2, CheckCircle2, ArrowRight } from "lucide-react";
 import api from "@/lib/api";
 import { validateEmail, validatePhoneForCountry } from "@/lib/validators";
 import { isoToFlag, DIAL_CODES } from "@/lib/dialCodes";
-import EmailOtpField from "@/components/EmailOtpField";
 
 const REASONS = [
   "Parent / Student Enquiry",
@@ -31,7 +30,6 @@ export default function ContactUs() {
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
-  const [verifyToken, setVerifyToken] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -58,7 +56,6 @@ export default function ContactUs() {
     if (form.reason === "Other" && !form.reason_other.trim()) errs.reason_other = "Please specify.";
     if (!form.subject.trim()) errs.subject = "Please enter a subject.";
     if (!form.message.trim()) errs.message = "Please enter a message.";
-    if (!verifyToken) errs.email = errs.email || "Please verify your email before sending.";
     setFieldErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -75,7 +72,6 @@ export default function ContactUs() {
         phone: form.phone.trim() ? `${dialCode} ${form.phone}`.trim() : "",
         subject: `[${reason}] ${form.subject}`,
         message: form.message,
-        verify_token: verifyToken,
       });
       setSent(true);
       toast.success("Message sent! We'll reply within 24 hours.");
@@ -135,7 +131,7 @@ export default function ContactUs() {
               </div>
               <h2 className="mt-4 font-display text-2xl">Message sent!</h2>
               <p className="mt-2 text-muted-foreground text-sm">Thanks, {form.name.split(" ")[0]}. We'll get back to you within 24 hours.</p>
-              <Button variant="outline" className="mt-6 pill-btn" onClick={() => { setSent(false); setForm({ name: "", email: "", phone: "", reason: "", reason_other: "", subject: "", message: "" }); setVerifyToken(""); }}>
+              <Button variant="outline" className="mt-6 pill-btn" onClick={() => { setSent(false); setForm({ name: "", email: "", phone: "", reason: "", reason_other: "", subject: "", message: "" }); }}>
                 Send another message
               </Button>
             </div>
@@ -150,7 +146,6 @@ export default function ContactUs() {
                 <Label htmlFor="c-email">Email *</Label>
                 <Input id="c-email" required type="email" value={form.email} onChange={(e) => setField("email", e.target.value)} className="mt-1.5 rounded-xl" data-testid="contact-email" />
                 {fieldErrors.email && <p className="mt-1 text-xs text-destructive">{fieldErrors.email}</p>}
-                <EmailOtpField email={form.email} verifyToken={verifyToken} onVerified={setVerifyToken} onReset={() => setVerifyToken("")} />
               </div>
               <div>
                 <Label htmlFor="c-phone">Phone (Optional)</Label>
