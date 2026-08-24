@@ -723,9 +723,10 @@ async def payments_config():
     return {"key_id": os.environ.get("RAZORPAY_KEY_ID", "")}
 
 @api_router.get("/payments/diagnostics")
-async def payments_diagnostics():
+async def payments_diagnostics(_: dict = Depends(require_role("admin", "owner"))):
     """Safe, secret-free check of whether Razorpay env vars are actually
-    present on THIS running process — never returns the real values."""
+    present on THIS running process — never returns the real values.
+    Restricted to admin/owner accounts (was previously public)."""
     key = os.environ.get("RAZORPAY_KEY_ID", "")
     secret = os.environ.get("RAZORPAY_KEY_SECRET", "")
     return {
