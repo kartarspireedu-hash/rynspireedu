@@ -940,6 +940,15 @@ if _static_dir.exists():
         candidate = _static_dir / full_path
         if full_path and candidate.is_file():
             return FileResponse(str(candidate))
+        # Prerendered page snapshot (SEO/AEO): fully-rendered HTML generated
+        # at build time for this exact public route, if one exists. Falls
+        # through to the plain SPA shell below for any route that wasn't
+        # prerendered (e.g. dashboards, login, session rooms) — those are
+        # unaffected and behave exactly as before.
+        if full_path:
+            prerendered = _static_dir / full_path.strip("/") / "index.html"
+            if prerendered.is_file():
+                return FileResponse(str(prerendered))
         # Everything else (React Router client-side routes) falls back to index.html
         index_file = _static_dir / "index.html"
         if index_file.exists():

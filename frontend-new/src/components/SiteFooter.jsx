@@ -57,7 +57,7 @@ export default function SiteFooter() {
         <div className="col-span-2">
           <BrandMark size="md" />
           <p className="text-sm text-muted-foreground mt-4 max-w-sm leading-relaxed">
-            Premium 1-to-1 online tutoring for Kindergarten to Year 12. A SpireEdu Services brand — trusted across Australia, New Zealand, the US, Canada and worldwide.
+            Premium 1-to-1 online tutoring for Kindergarten to Year 12. A SpireEdu Services brand — trusted across Australia, New Zealand, the US and Canada.
           </p>
           <p className="mt-4 text-xs uppercase tracking-[0.2em] text-muted-foreground">RynSpireEdu · SpireEdu Services</p>
         </div>
