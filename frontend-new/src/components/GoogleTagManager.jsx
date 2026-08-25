@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { getConsent } from "@/lib/cookieConsent";
 
 const GTM_ID = "GTM-TP47JM7K";
 
@@ -18,13 +17,12 @@ function loadGtm() {
 
 export default function GoogleTagManager() {
   useEffect(() => {
-    if (getConsent().analytics) loadGtm();
-
-    const onChange = (e) => {
-      if (e.detail?.analytics) loadGtm();
-    };
-    window.addEventListener("rse-consent-changed", onChange);
-    return () => window.removeEventListener("rse-consent-changed", onChange);
+    // Advanced Consent Mode: GTM now loads immediately for every visitor.
+    // What it's allowed to actually do is controlled by the consent signal
+    // set in index.html (default) and cookieConsent.js (update) — not by
+    // whether the script itself loads. No tracking cookies are set and no
+    // personal data is sent until the visitor accepts.
+    loadGtm();
   }, []);
 
   return null;

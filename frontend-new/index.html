@@ -1,6 +1,20 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <!-- Google Consent Mode defaults — must run before GTM loads.
+         Nothing is tracked until the visitor accepts cookies; this just tells
+         Google's tags to run in a restricted, cookie-less mode by default. -->
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('consent', 'default', {
+        'ad_storage': 'denied',
+        'analytics_storage': 'denied',
+        'ad_user_data': 'denied',
+        'ad_personalization': 'denied',
+        'wait_for_update': 500
+      });
+    </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=4" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png?v=4" />

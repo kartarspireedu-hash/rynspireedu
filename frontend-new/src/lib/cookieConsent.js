@@ -19,9 +19,28 @@ export function getConsent() {
   }
 }
 
+// Tells Google's Consent Mode (defaults set in index.html) whether this
+// visitor has granted or denied tracking. GTM/GA4/Ads read this signal
+// directly, live — no page reload needed.
+function pushConsentUpdate(analyticsGranted) {
+  try {
+    window.dataLayer = window.dataLayer || [];
+    if (typeof window.gtag !== "function") {
+      window.gtag = function () { window.dataLayer.push(arguments); };
+    }
+    window.gtag('consent', 'update', {
+      'ad_storage': analyticsGranted ? 'granted' : 'denied',
+      'analytics_storage': analyticsGranted ? 'granted' : 'denied',
+      'ad_user_data': analyticsGranted ? 'granted' : 'denied',
+      'ad_personalization': analyticsGranted ? 'granted' : 'denied',
+    });
+  } catch {}
+}
+
 export function setConsent(partial) {
   const next = { ...getConsent(), ...partial, decided: true };
   try { localStorage.setItem(KEY, JSON.stringify(next)); } catch {}
+  pushConsentUpdate(next.analytics);
   window.dispatchEvent(new CustomEvent("rse-consent-changed", { detail: next }));
   return next;
 }
