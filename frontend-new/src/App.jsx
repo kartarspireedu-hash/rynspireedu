@@ -23,6 +23,7 @@ const BookDemo = lazy(() => import("@/pages/BookDemo"));
 const PaymentSuccess = lazy(() => import("@/pages/PaymentSuccess"));
 const Checkout = lazy(() => import("@/pages/Checkout"));
 const ContactUs = lazy(() => import("@/pages/ContactUs"));
+const FAQ = lazy(() => import("@/pages/FAQ"));
 const PrivacyPolicy = lazy(() => import("@/pages/PrivacyPolicy"));
 const Terms = lazy(() => import("@/pages/Terms"));
 const TermsOfUse = lazy(() => import("@/pages/TermsOfUse"));
@@ -68,6 +69,7 @@ function App() {
                   <Route path="/payment-success" element={<PaymentSuccess />} />
                   <Route path="/checkout" element={<Checkout />} />
                   <Route path="/contact" element={<ContactUs />} />
+                  <Route path="/faq" element={<FAQ />} />
                   <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                   <Route path="/terms" element={<Terms />} />
                   <Route path="/terms-of-use" element={<TermsOfUse />} />

@@ -11,6 +11,7 @@ import Landing from "@/pages/Landing";
 import About from "@/pages/About";
 import Pricing from "@/pages/Pricing";
 import ContactUs from "@/pages/ContactUs";
+import FAQ from "@/pages/FAQ";
 import BookDemo from "@/pages/BookDemo";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import Terms from "@/pages/Terms";
@@ -24,6 +25,7 @@ const PAGES = {
   "/about": About,
   "/pricing": Pricing,
   "/contact": ContactUs,
+  "/faq": FAQ,
   "/book-demo": BookDemo,
   "/privacy-policy": PrivacyPolicy,
   "/terms": Terms,

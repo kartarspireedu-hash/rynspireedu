@@ -62,6 +62,7 @@ const ROUTES = [
   { path: "/about", title: "About RynSpireEdu | Online Tutoring for Australia, NZ, US & Canada", description: "RynSpireEdu delivers premium 1-to-1 online tutoring for K-12 students across Australia, New Zealand, the United States and Canada, expanding soon to the UK, Europe and the Middle East." },
   { path: "/pricing", title: "Pricing - RynSpireEdu | Online Tutoring Plans for K-12", description: "Transparent pricing for 1-to-1 online tutoring plans. Monthly, quarterly, half-yearly and yearly plans for K-12 students in Australia, New Zealand, the US and Canada." },
   { path: "/contact", title: "Contact Us - RynSpireEdu", description: "Questions about tutoring plans or billing? Contact RynSpireEdu by form or email at care@rynspireedu.com." },
+  { path: "/faq", title: "Frequently Asked Questions - RynSpireEdu", description: "Answers to common questions about RynSpireEdu's online tutoring: subjects, pricing, demo sessions, countries served, cancellations, refunds and child safety." },
   { path: "/book-demo", title: "Book a Free Demo - RynSpireEdu", description: "Book a free 25-minute 1-to-1 online tutoring demo session with RynSpireEdu. No payment needed." },
   { path: "/privacy-policy", title: "Privacy Policy - RynSpireEdu", description: "How RynSpireEdu collects, uses and protects your personal information." },
   { path: "/terms", title: "Payment Terms & Conditions - RynSpireEdu", description: "Payment terms and conditions for RynSpireEdu tutoring plans and services." },

@@ -68,6 +68,7 @@ export default function SiteFooter() {
             <li><Link to="/about" className="hover:text-primary">About</Link></li>
             <li><Link to="/book-demo" className="hover:text-primary">Book Free Demo</Link></li>
             <li><Link to="/contact" className="hover:text-primary">Contact Us</Link></li>
+            <li><Link to="/faq" className="hover:text-primary">FAQ</Link></li>
           </ul>
         </div>
         <div>
