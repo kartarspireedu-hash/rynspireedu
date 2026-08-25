@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { GraduationCap, BookOpen, User } from "lucide-react";
+import { GraduationCap, BookOpen, User, Sparkles } from "lucide-react";
 
 // Arrays specifically curated for Australia & New Zealand
 const FIRST_NAMES = [
@@ -72,8 +72,8 @@ export default function LiveStudentTicker() {
   return (
     <div className="mx-auto max-w-3xl rounded-3xl sm:rounded-full border border-border bg-card/70 backdrop-blur-md px-4 sm:px-5 py-3 sm:py-2.5 flex flex-wrap items-center justify-center sm:justify-start gap-x-3 gap-y-1.5 shadow-[0_8px_32px_rgba(10,25,47,0.06)]" data-testid="live-student-ticker">
       <span className="flex items-center gap-1.5 text-xs uppercase tracking-[0.2em] text-accent shrink-0">
-        <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-        Live
+        <Sparkles size={12} className="text-accent" />
+        For example
       </span>
       <AnimatePresence mode="wait">
         <motion.div

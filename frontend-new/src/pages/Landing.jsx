@@ -62,14 +62,14 @@ export default function Landing() {
     <div className="min-h-screen">
       <Seo
         title="RynSpireEdu - Best Online Tutoring Platform in Australia, New Zealand, US & Canada"
-        description="Live, 1-to-1 online tutoring for K-12 students in Australia, New Zealand, the United States, Canada and worldwide. Book a free 25-minute demo class today with RynSpireEdu."
+        description="Live, 1-to-1 online tutoring for K-12 students in Australia, New Zealand, the United States and Canada. Book a free 25-minute demo class today with RynSpireEdu."
       />
       <script type="application/ld+json">{JSON.stringify({
         "@context": "https://schema.org",
         "@type": "EducationalOrganization",
         "name": "RynSpireEdu",
         "url": "https://rynspireedu.com",
-        "description": "Live, 1-to-1 online tutoring for K-12 students across Australia, New Zealand, the United States, Canada and worldwide.",
+        "description": "Live, 1-to-1 online tutoring for K-12 students across Australia, New Zealand, the United States and Canada.",
         "areaServed": ["Australia", "New Zealand", "United States", "Canada"],
         "email": "care@rynspireedu.com",
       })}</script>
