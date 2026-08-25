@@ -4,6 +4,12 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowRight, Calculator, Atom, BookOpen, FlaskConical, Leaf, Cpu, Code2, Languages, GraduationCap, Trophy, TrendingUp, Zap, CheckCircle2, Star, ShieldCheck, Users, Video, Sparkles, Coins, HeartHandshake, Heart, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import LiveStudentTicker from "@/components/LiveStudentTicker";
@@ -37,6 +43,35 @@ const testimonials = [
   { q: "SAT prep for uni admissions — went from 1310 to 1480. Life-changing.", a: "Anaya P.", r: "Student · Gold Coast" },
   { q: "As a working mum, the flexibility and transparency is priceless.", a: "Fiona C.", r: "Parent · Canberra" },
   { q: "Coding lessons that actually made my kid a builder — he shipped his first app!", a: "Kabir S.", r: "Parent · Auckland" },
+];
+
+// Short teaser of the biggest pre-booking objections — same wording as the
+// full /faq page, just a smaller subset. Deliberately has NO FAQPage
+// schema of its own (the full /faq page already carries that) to avoid
+// duplicate structured data across two URLs.
+const homeFaqs = [
+  {
+    q: "Is the demo really free?",
+    a: "Yes — a 25-minute 1-to-1 demo session, no payment required.",
+    to: "/book-demo",
+    linkLabel: "Book your free demo",
+  },
+  {
+    q: "Which countries do you serve?",
+    a: "Australia, New Zealand, the United States and Canada, with sessions scheduled around your local time zone.",
+  },
+  {
+    q: "What if it doesn't work out?",
+    a: "Our Cancellation and Refund policies set out clear terms for pausing or cancelling a plan.",
+    to: "/cancellation-policy",
+    linkLabel: "Read our Cancellation Policy",
+  },
+  {
+    q: "How much does it cost?",
+    a: "We offer monthly, quarterly, half-yearly and yearly plans.",
+    to: "/pricing",
+    linkLabel: "View pricing",
+  },
 ];
 
 const businessSteps = [
@@ -233,6 +268,37 @@ export default function Landing() {
               <span className="absolute top-4 right-5 font-display text-4xl leading-none text-accent/40 select-none" aria-hidden>&ldquo;</span>
             </motion.blockquote>
           ))}
+        </div>
+
+        {/* FAQ TEASER */}
+        <div className="mt-16 max-w-2xl mx-auto">
+          <div className="text-center">
+            <Eyebrow>Common questions</Eyebrow>
+            <h2 className="mt-3 font-display text-2xl sm:text-3xl">Before you book, a few quick answers.</h2>
+          </div>
+          <Accordion type="single" collapsible className="mt-8">
+            {homeFaqs.map((f, i) => (
+              <AccordionItem key={i} value={`home-faq-${i}`} data-testid={`home-faq-${i}`}>
+                <AccordionTrigger className="text-left text-base">{f.q}</AccordionTrigger>
+                <AccordionContent className="text-sm leading-relaxed text-foreground/80">
+                  <p>{f.a}</p>
+                  {f.to && (
+                    <Link
+                      to={f.to}
+                      className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-accent underline underline-offset-2"
+                    >
+                      {f.linkLabel} <ArrowRight size={13} />
+                    </Link>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+          <div className="mt-6 text-center">
+            <Link to="/faq" className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-accent">
+              See all FAQs <ArrowRight size={14} />
+            </Link>
+          </div>
         </div>
 
         {/* FINAL CTA */}
