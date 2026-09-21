@@ -24,6 +24,8 @@ const PaymentSuccess = lazy(() => import("@/pages/PaymentSuccess"));
 const Checkout = lazy(() => import("@/pages/Checkout"));
 const ContactUs = lazy(() => import("@/pages/ContactUs"));
 const FAQ = lazy(() => import("@/pages/FAQ"));
+const BlogIndex = lazy(() => import("@/pages/BlogIndex"));
+const BlogArticle = lazy(() => import("@/pages/BlogArticle"));
 const PrivacyPolicy = lazy(() => import("@/pages/PrivacyPolicy"));
 const Terms = lazy(() => import("@/pages/Terms"));
 const TermsOfUse = lazy(() => import("@/pages/TermsOfUse"));
@@ -70,6 +72,8 @@ function App() {
                   <Route path="/checkout" element={<Checkout />} />
                   <Route path="/contact" element={<ContactUs />} />
                   <Route path="/faq" element={<FAQ />} />
+                  <Route path="/blog" element={<BlogIndex />} />
+                  <Route path="/blog/:slug" element={<BlogArticle />} />
                   <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                   <Route path="/terms" element={<Terms />} />
                   <Route path="/terms-of-use" element={<TermsOfUse />} />

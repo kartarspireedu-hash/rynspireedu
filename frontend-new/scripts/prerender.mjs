@@ -56,6 +56,7 @@ globalThis.document = globalThis.document || {
 };
 
 const { render } = await import(join(ssrDir, "entry-server.js"));
+const { BLOG_ARTICLES } = await import(join(__dirname, "..", "src", "data", "blogArticles.js"));
 
 const ROUTES = [
   { path: "/", title: "RynSpireEdu - Best Online Tutoring Platform in Australia, New Zealand, US & Canada", description: "Live, 1-to-1 online tutoring for K-12 students in Australia, New Zealand, the United States and Canada. Book a free 25-minute demo class today with RynSpireEdu." },
@@ -63,6 +64,7 @@ const ROUTES = [
   { path: "/pricing", title: "Pricing - RynSpireEdu | Online Tutoring Plans for K-12", description: "Transparent pricing for 1-to-1 online tutoring plans. Monthly, quarterly, half-yearly and yearly plans for K-12 students in Australia, New Zealand, the US and Canada." },
   { path: "/contact", title: "Contact Us - RynSpireEdu", description: "Questions about tutoring plans or billing? Contact RynSpireEdu by form or email at care@rynspireedu.com." },
   { path: "/faq", title: "Frequently Asked Questions - RynSpireEdu", description: "Answers to common questions about RynSpireEdu's online tutoring: subjects, pricing, demo sessions, countries served, cancellations, refunds and child safety." },
+  { path: "/blog", title: "Blog - Tutoring Guides & Advice - RynSpireEdu", description: "Practical guides on tutoring costs, choosing a tutor, HSC vs VCE vs NCEA, SAT vs ACT, NAPLAN, and more — for parents across Australia, New Zealand, the US and Canada." },
   { path: "/book-demo", title: "Book a Free Demo - RynSpireEdu", description: "Book a free 25-minute 1-to-1 online tutoring demo session with RynSpireEdu. No payment needed." },
   { path: "/privacy-policy", title: "Privacy Policy - RynSpireEdu", description: "How RynSpireEdu collects, uses and protects your personal information." },
   { path: "/terms", title: "Payment Terms & Conditions - RynSpireEdu", description: "Payment terms and conditions for RynSpireEdu tutoring plans and services." },
@@ -70,6 +72,14 @@ const ROUTES = [
   { path: "/cancellation-policy", title: "Cancellation Policy - RynSpireEdu", description: "RynSpireEdu's policy on cancelling tutoring plans and sessions." },
   { path: "/refund-policy", title: "Refund Policy - RynSpireEdu", description: "RynSpireEdu's policy on refunds for tutoring plans and sessions." },
   { path: "/child-protection", title: "Child Protection Policy - RynSpireEdu", description: "RynSpireEdu's commitment to child safety and protection in all tutoring interactions." },
+  // One route per blog article, generated from the same data the page
+  // component renders from — titles/descriptions can never drift out of
+  // sync between the prerendered shell and the live page.
+  ...BLOG_ARTICLES.map((a) => ({
+    path: `/blog/${a.slug}`,
+    title: a.metaTitle,
+    description: a.metaDescription,
+  })),
 ];
 
 function buildHtml(template, { title, description, bodyHtml }) {
