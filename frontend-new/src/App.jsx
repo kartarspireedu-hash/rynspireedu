@@ -26,6 +26,8 @@ const ContactUs = lazy(() => import("@/pages/ContactUs"));
 const FAQ = lazy(() => import("@/pages/FAQ"));
 const BlogIndex = lazy(() => import("@/pages/BlogIndex"));
 const BlogArticle = lazy(() => import("@/pages/BlogArticle"));
+const CustomPay = lazy(() => import("@/pages/CustomPay"));
+const AdminCustomQuotes = lazy(() => import("@/pages/AdminCustomQuotes"));
 const PrivacyPolicy = lazy(() => import("@/pages/PrivacyPolicy"));
 const Terms = lazy(() => import("@/pages/Terms"));
 const TermsOfUse = lazy(() => import("@/pages/TermsOfUse"));
@@ -88,6 +90,8 @@ function App() {
                   <Route path="/app/student/book" element={<ProtectedRoute roles={["student", "parent"]}><BookSession /></ProtectedRoute>} />
                   <Route path="/app/tutor" element={<ProtectedRoute roles={["tutor"]}><TutorDashboard /></ProtectedRoute>} />
                   <Route path="/app/admin" element={<ProtectedRoute roles={["admin", "owner"]}><AdminDashboard /></ProtectedRoute>} />
+                  <Route path="/app/admin/custom-quotes" element={<ProtectedRoute roles={["admin", "owner"]}><AdminCustomQuotes /></ProtectedRoute>} />
+                  <Route path="/pay/:token" element={<CustomPay />} />
                   <Route path="/session/:id" element={<ProtectedRoute><SessionRoom /></ProtectedRoute>} />
 
                   <Route path="*" element={<Landing />} />

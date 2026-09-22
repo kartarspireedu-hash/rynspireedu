@@ -313,6 +313,18 @@ class VerifyPaymentIn(BaseModel):
     customer_email: Optional[EmailStr] = None
     customer_name: Optional[str] = None
 
+class CustomQuoteIn(BaseModel):
+    amount: int = Field(gt=0, description="Amount in the smallest currency unit (paise/cents)")
+    currency: str = "USD"
+    customer_name: Optional[str] = None
+    customer_email: Optional[EmailStr] = None
+    note: Optional[str] = None
+
+class CustomQuoteVerifyIn(BaseModel):
+    razorpay_order_id: str
+    razorpay_payment_id: str
+    razorpay_signature: str
+
 # ------------------------------------------------------------------
 # Email sending via Hostinger SMTP (graceful failure)
 # ------------------------------------------------------------------
@@ -831,6 +843,110 @@ async def verify_payment(payload: VerifyPaymentIn, background: BackgroundTasks):
         </div>
         """
         background.add_task(_send_email_sync, [payload.customer_email], "Payment received · Welcome to RynSpireEdu 🎉", html, care)
+    return {"ok": True, "status": "paid"}
+
+# ------------------------------------------------------------------
+# Custom quotes — admin-created, one-off custom-priced payment links.
+# Not linked anywhere in the site nav, footer, sitemap, or prerendered
+# pages — only reachable by whoever has the exact link. The token is a
+# cryptographically random 32-byte value (not a guessable sequential
+# ID), and the charged amount always comes from the stored quote record
+# on the server, never from the client, so a link can't be tampered
+# with to pay a different amount. Reuses the same Razorpay Orders API
+# integration as the regular checkout flow above — no separate
+# Razorpay product involved.
+# ------------------------------------------------------------------
+@api_router.post("/admin/custom-quotes")
+async def create_custom_quote(payload: CustomQuoteIn, admin=Depends(require_role("admin", "owner"))):
+    if payload.amount < 100:
+        raise HTTPException(status_code=400, detail="Amount must be >= 100 minor units")
+    token = secrets.token_urlsafe(24)
+    doc = {
+        "id": str(uuid.uuid4()), "token": token,
+        "amount": payload.amount, "currency": payload.currency.upper(),
+        "customer_name": payload.customer_name, "customer_email": payload.customer_email,
+        "note": payload.note, "status": "pending",
+        "created_by": admin.get("email"), "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.custom_quotes.insert_one(doc)
+    frontend_url = os.environ.get("FRONTEND_URL", "https://rynspireedu.com")
+    return {"token": token, "url": f"{frontend_url}/pay/{token}", "amount": payload.amount, "currency": doc["currency"]}
+
+@api_router.get("/admin/custom-quotes")
+async def list_custom_quotes(admin=Depends(require_role("admin", "owner"))):
+    quotes = await db.custom_quotes.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    frontend_url = os.environ.get("FRONTEND_URL", "https://rynspireedu.com")
+    for q in quotes:
+        q["url"] = f"{frontend_url}/pay/{q['token']}"
+    return quotes
+
+@api_router.get("/custom-quotes/{token}")
+async def get_custom_quote(token: str):
+    q = await db.custom_quotes.find_one({"token": token}, {"_id": 0})
+    if not q:
+        raise HTTPException(status_code=404, detail="This payment link is invalid or has expired.")
+    return {
+        "amount": q["amount"], "currency": q["currency"],
+        "customer_name": q.get("customer_name"), "note": q.get("note"),
+        "status": q["status"],
+    }
+
+@api_router.post("/custom-quotes/{token}/create-order")
+async def create_custom_quote_order(token: str):
+    q = await db.custom_quotes.find_one({"token": token})
+    if not q:
+        raise HTTPException(status_code=404, detail="This payment link is invalid or has expired.")
+    if q["status"] == "paid":
+        raise HTTPException(status_code=400, detail="This payment link has already been paid.")
+    rc = _razorpay_client()
+    try:
+        order = rc.order.create({
+            "amount": int(q["amount"]), "currency": q["currency"],
+            "receipt": f"quote_{token[:12]}",
+            "notes": {"custom_quote_token": token, "note": q.get("note") or ""},
+            "payment_capture": 1,
+        })
+        await db.custom_quotes.update_one({"token": token}, {"$set": {"razorpay_order_id": order["id"]}})
+        return {"order_id": order["id"], "amount": order["amount"], "currency": order["currency"],
+                "key_id": os.environ.get("RAZORPAY_KEY_ID", "")}
+    except razorpay.errors.BadRequestError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.exception("Razorpay create_order failed for custom quote")
+        raise HTTPException(status_code=500, detail=f"Order creation failed: {e}")
+
+@api_router.post("/custom-quotes/{token}/verify")
+async def verify_custom_quote(token: str, payload: CustomQuoteVerifyIn, background: BackgroundTasks):
+    q = await db.custom_quotes.find_one({"token": token})
+    if not q:
+        raise HTTPException(status_code=404, detail="This payment link is invalid or has expired.")
+    secret = os.environ.get("RAZORPAY_KEY_SECRET", "")
+    if not secret:
+        raise HTTPException(status_code=500, detail="Razorpay is not configured")
+    body = f"{payload.razorpay_order_id}|{payload.razorpay_payment_id}".encode()
+    expected = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected, payload.razorpay_signature):
+        await db.custom_quotes.update_one({"token": token}, {"$set": {"status": "signature_mismatch"}})
+        raise HTTPException(status_code=400, detail="Invalid signature")
+    await db.custom_quotes.update_one(
+        {"token": token},
+        {"$set": {"status": "paid", "payment_id": payload.razorpay_payment_id,
+                  "paid_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if q.get("customer_email"):
+        care = os.environ.get("CARE_EMAIL", "care@rynspireedu.com")
+        html = f"""
+        <div style="font-family:Outfit,Arial,sans-serif;max-width:520px;color:#1a1235;">
+          <h2 style="color:#3b1a70;">Payment received — thank you! 🎉</h2>
+          <p>Hi {q.get('customer_name') or 'there'},</p>
+          <p>Thank you! Your payment{f" for {q['note']}" if q.get('note') else ""} has been successfully received.</p>
+          <p>Our team will reach out shortly to confirm next steps.</p>
+          <p style="color:#6b7280;font-size:13px;">Order ID: <code>{payload.razorpay_order_id}</code><br/>Payment ID: <code>{payload.razorpay_payment_id}</code></p>
+          <p style="margin-top:20px;">Questions? Just reply to this email or write to <a href="mailto:care@rynspireedu.com">care@rynspireedu.com</a>.</p>
+          <p style="color:#6b7280;font-size:13px;">— RynSpireEdu · Best Online Tutoring Services</p>
+        </div>
+        """
+        background.add_task(_send_email_sync, [q["customer_email"]], "Payment received · RynSpireEdu 🎉", html, care)
     return {"ok": True, "status": "paid"}
 
 class SetPasswordIn(BaseModel):
