@@ -27,7 +27,7 @@ export default function Register() {
     const res = await register(form);
     setBusy(false);
     if (res.ok) {
-      toast.success(`Welcome to RynSpire, ${res.user.name}!`);
+      toast.success(`Welcome to RynSpireEdu, ${res.user.name}!`);
       navigate(roleHome[res.user.role] || "/app/student");
     } else {
       setError(res.error);
@@ -41,7 +41,7 @@ export default function Register() {
       <div className="container-x py-16 grid lg:grid-cols-2 gap-16 items-center max-w-5xl">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-accent">Get started</p>
-          <h1 className="mt-3 font-display text-4xl lg:text-5xl leading-[1.05]">Create your RynSpire account.</h1>
+          <h1 className="mt-3 font-display text-4xl lg:text-5xl leading-[1.05]">Create your RynSpireEdu account.</h1>
           <p className="mt-4 text-muted-foreground">Free 30-minute consultation. No credit card required.</p>
         </div>
 

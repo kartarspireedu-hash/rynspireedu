@@ -978,6 +978,20 @@ async def admin_list_users(_: dict = Depends(require_role("admin", "owner"))):
     users = await db.users.find({}, {"_id": 0, "password_hash": 0}).sort("created_at", -1).to_list(1000)
     return [UserOut(**u) for u in users]
 
+@api_router.delete("/admin/users/{user_id}")
+async def admin_delete_user(user_id: str, admin: dict = Depends(require_role("admin", "owner"))):
+    target = await db.users.find_one({"id": user_id})
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    if target.get("email") == admin.get("email"):
+        raise HTTPException(status_code=400, detail="You can't delete your own account while logged in as it.")
+    if target.get("role") in ("admin", "owner"):
+        remaining_admins = await db.users.count_documents({"role": {"$in": ["admin", "owner"]}})
+        if remaining_admins <= 1:
+            raise HTTPException(status_code=400, detail="Can't delete the last remaining admin account.")
+    await db.users.delete_one({"id": user_id})
+    return {"ok": True}
+
 @api_router.get("/admin/stats")
 async def admin_stats(_: dict = Depends(require_role("admin", "owner"))):
     total_users = await db.users.count_documents({})
@@ -995,8 +1009,14 @@ async def admin_stats(_: dict = Depends(require_role("admin", "owner"))):
 # Startup
 # ------------------------------------------------------------------
 async def _seed_admin():
-    email = os.environ.get("ADMIN_EMAIL", "admin@rynspireedu.com").lower()
-    pwd = os.environ.get("ADMIN_PASSWORD", "Admin@RynSpire2026")
+    email = os.environ.get("ADMIN_EMAIL", "").lower().strip()
+    pwd = os.environ.get("ADMIN_PASSWORD", "")
+    if not email or not pwd:
+        logger.warning(
+            "ADMIN_EMAIL / ADMIN_PASSWORD not set — skipping admin seed. "
+            "Set both in Cloud Run env vars to create/update the admin account."
+        )
+        return
     existing = await db.users.find_one({"email": email})
     if not existing:
         await db.users.insert_one({"id": str(uuid.uuid4()), "name": "RynSpireEdu Admin",

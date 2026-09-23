@@ -44,7 +44,7 @@ export default function TutorDashboard() {
       <div className="grid gap-6">
         <div className="rounded-2xl border border-border bg-card p-6 lg:p-8 grid lg:grid-cols-3 gap-6 items-center">
           <div className="lg:col-span-2">
-            <p className="text-xs uppercase tracking-[0.2em] text-accent">Today at RynSpire</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-accent">Today at RynSpireEdu</p>
             <h2 className="font-display text-2xl lg:text-3xl mt-2">Your teaching studio.</h2>
             <p className="text-muted-foreground mt-2 text-sm max-w-lg">Manage lessons, review students, and prepare notes — everything one calm space away.</p>
           </div>

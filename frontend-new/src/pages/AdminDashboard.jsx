@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { LayoutDashboard, Users, GraduationCap, Calendar, ShieldCheck, DownloadCloud, CreditCard, Eye, Mail, Phone, MapPin, Clock, FileText } from "lucide-react";
+import { LayoutDashboard, Users, GraduationCap, Calendar, ShieldCheck, DownloadCloud, CreditCard, Eye, Mail, Phone, MapPin, Clock, FileText, Trash2 } from "lucide-react";
 
 const nav = [{ to: "/app/admin", label: "Overview", icon: LayoutDashboard, end: true }];
 
@@ -23,6 +23,17 @@ const roleColors = {
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
+
+  const deleteUser = async (u) => {
+    if (!window.confirm(`Delete ${u.name} (${u.email})? This can't be undone.`)) return;
+    try {
+      await api.delete(`/admin/users/${u.id}`);
+      setUsers((prev) => prev.filter((x) => x.id !== u.id));
+      toast.success("User deleted");
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Could not delete user");
+    }
+  };
   const [demos, setDemos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null); // demo booking currently open
@@ -173,6 +184,7 @@ export default function AdminDashboard() {
                       <TableHead>Role</TableHead>
                       <TableHead>Country</TableHead>
                       <TableHead>Joined</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -183,6 +195,11 @@ export default function AdminDashboard() {
                         <TableCell><Badge variant="outline" className={roleColors[u.role] || ""}>{u.role}</Badge></TableCell>
                         <TableCell className="text-sm">{u.country || "—"}</TableCell>
                         <TableCell className="text-xs text-muted-foreground font-mono">{new Date(u.created_at).toLocaleDateString()}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" onClick={() => deleteUser(u)} data-testid={`delete-user-${u.id}`}>
+                            <Trash2 size={14} className="text-destructive" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

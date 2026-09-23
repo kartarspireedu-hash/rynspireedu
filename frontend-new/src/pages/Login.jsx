@@ -41,13 +41,8 @@ export default function Login() {
       <div className="container-x py-16 grid lg:grid-cols-2 gap-16 items-center max-w-5xl">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-accent">Welcome back</p>
-          <h1 className="mt-3 font-display text-4xl lg:text-5xl leading-[1.05]">Sign in to your RynSpire dashboard.</h1>
+          <h1 className="mt-3 font-display text-4xl lg:text-5xl leading-[1.05]">Sign in to your RynSpireEdu dashboard.</h1>
           <p className="mt-4 text-muted-foreground">Continue your lessons, track progress and message your tutor.</p>
-          <div className="mt-8 rounded-2xl border border-accent/30 bg-accent/10 p-4 text-sm">
-            <p className="font-medium">Demo credentials</p>
-            <p className="text-muted-foreground text-xs mt-1">student@rynspire.com · Student@2026</p>
-            <p className="text-muted-foreground text-xs">admin@rynspire.com · Admin@RynSpire2026</p>
-          </div>
         </div>
 
         <form onSubmit={submit} className="rounded-3xl border border-border bg-card p-8" data-testid="login-form">
@@ -69,7 +64,7 @@ export default function Login() {
               {busy ? "Signing in..." : "Sign in"}
             </Button>
             <p className="text-center text-sm text-muted-foreground">
-              New to RynSpire? <Link to="/register" className="text-accent hover:underline" data-testid="login-register-link">Create an account</Link>
+              New to RynSpireEdu? <Link to="/register" className="text-accent hover:underline" data-testid="login-register-link">Create an account</Link>
             </p>
           </div>
         </form>
