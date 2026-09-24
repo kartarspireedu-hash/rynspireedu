@@ -26,7 +26,8 @@ const REASONS = [
 
 export default function ContactUs() {
   const [form, setForm] = useState({ name: "", email: "", phone: "", reason: "", reason_other: "", subject: "", message: "" });
-  const [dialCode, setDialCode] = useState("+61");
+  const [dialIso, setDialIso] = useState("AU");
+  const dialCode = DIAL_CODES.find((d) => d.iso === dialIso)?.dial || "+61";
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -36,7 +37,7 @@ export default function ContactUs() {
     api.get("/geo").then(({ data }) => {
       if (cancelled) return;
       const match = DIAL_CODES.find((d) => d.iso === data?.country);
-      if (match) setDialCode(match.dial);
+      if (match) setDialIso(match.iso);
     }).catch(() => {});
     return () => { cancelled = true; };
   }, []);
@@ -150,11 +151,11 @@ export default function ContactUs() {
               <div>
                 <Label htmlFor="c-phone">Phone (Optional)</Label>
                 <div className="mt-1.5 flex gap-2">
-                  <Select value={dialCode} onValueChange={setDialCode}>
+                  <Select value={dialIso} onValueChange={setDialIso}>
                     <SelectTrigger className="rounded-xl w-[6.5rem] shrink-0" data-testid="contact-dial-code"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {DIAL_CODES.map((d) => (
-                        <SelectItem key={d.iso} value={d.dial}>{isoToFlag(d.iso)} {d.dial}</SelectItem>
+                        <SelectItem key={d.iso} value={d.iso}>{isoToFlag(d.iso)} {d.dial}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

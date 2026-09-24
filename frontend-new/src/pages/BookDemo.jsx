@@ -141,7 +141,8 @@ export default function BookDemo() {
     student_class: "Grade 8", class_other: "", subject: "Mathematics", subject_other: "",
     additional_notes: "",
   });
-  const [dialCode, setDialCode] = useState("+61");
+  const [dialIso, setDialIso] = useState("AU");
+  const dialCode = DIAL_CODES.find((d) => d.iso === dialIso)?.dial || "+61";
   const [agreed, setAgreed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [bookingId, setBookingId] = useState("");
@@ -157,7 +158,7 @@ export default function BookDemo() {
     api.get("/geo").then(({ data }) => {
       if (cancelled) return;
       const match = DIAL_CODES.find((d) => d.iso === data?.country);
-      if (match) setDialCode(match.dial);
+      if (match) setDialIso(match.iso);
     }).catch(() => {});
     return () => { cancelled = true; };
   }, []);
@@ -411,11 +412,11 @@ export default function BookDemo() {
                   <div>
                     <Label htmlFor="phone">Phone Number *</Label>
                     <div className="mt-1.5 flex gap-2">
-                      <Select value={dialCode} onValueChange={setDialCode}>
+                      <Select value={dialIso} onValueChange={setDialIso}>
                         <SelectTrigger className="rounded-xl w-[6.5rem] shrink-0" data-testid="demo-dial-code"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           {DIAL_CODES.map((d) => (
-                            <SelectItem key={d.iso} value={d.dial}>{isoToFlag(d.iso)} {d.dial}</SelectItem>
+                            <SelectItem key={d.iso} value={d.iso}>{isoToFlag(d.iso)} {d.dial}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
