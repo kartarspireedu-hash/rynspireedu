@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { LayoutDashboard, Users, GraduationCap, Calendar, ShieldCheck, DownloadCloud, CreditCard, Eye, Mail, Phone, MapPin, Clock, FileText, Trash2 } from "lucide-react";
+import CustomQuotesPanel from "@/components/CustomQuotesPanel";
 
 const nav = [{ to: "/app/admin", label: "Overview", icon: LayoutDashboard, end: true }];
 
@@ -109,6 +110,7 @@ export default function AdminDashboard() {
           <TabsList>
             <TabsTrigger value="demos" data-testid="tab-demos">Demo bookings</TabsTrigger>
             <TabsTrigger value="users" data-testid="tab-users">Users</TabsTrigger>
+            <TabsTrigger value="payment-links" data-testid="tab-payment-links">Payment links</TabsTrigger>
           </TabsList>
 
           <TabsContent value="demos">
@@ -205,6 +207,12 @@ export default function AdminDashboard() {
                   </TableBody>
                 </Table>
               </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="payment-links">
+            <div className="mt-4">
+              <CustomQuotesPanel />
             </div>
           </TabsContent>
         </Tabs>

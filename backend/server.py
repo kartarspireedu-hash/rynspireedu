@@ -318,6 +318,8 @@ class CustomQuoteIn(BaseModel):
     currency: str = "USD"
     customer_name: Optional[str] = None
     customer_email: Optional[EmailStr] = None
+    child_name: Optional[str] = None
+    child_grade: Optional[str] = None
     note: Optional[str] = None
 
 class CustomQuoteVerifyIn(BaseModel):
@@ -856,21 +858,51 @@ async def verify_payment(payload: VerifyPaymentIn, background: BackgroundTasks):
 # integration as the regular checkout flow above — no separate
 # Razorpay product involved.
 # ------------------------------------------------------------------
+CUSTOM_QUOTE_TTL_MINUTES = 15
+
+def _quote_public_status(q: dict) -> str:
+    """The status a payer/admin should see — folds in revoked/expired,
+    which aren't stored as the literal `status` field (that field only
+    tracks the payment lifecycle: pending/paid/signature_mismatch).
+    Only applies to quotes still 'pending' — a quote that already
+    resolved to paid (or any other terminal state) keeps that result
+    even if revoked afterwards; revoking only blocks *new* payment
+    attempts, it never rewrites a completed outcome."""
+    if q["status"] != "pending":
+        return q["status"]
+    if q.get("revoked"):
+        return "revoked"
+    expires_at = q.get("expires_at")
+    if expires_at and datetime.now(timezone.utc) > datetime.fromisoformat(expires_at):
+        return "expired"
+    return "pending"
+
 @api_router.post("/admin/custom-quotes")
-async def create_custom_quote(payload: CustomQuoteIn, admin=Depends(require_role("admin", "owner"))):
+async def create_custom_quote(payload: CustomQuoteIn, background: BackgroundTasks, admin=Depends(require_role("admin", "owner"))):
     if payload.amount < 100:
         raise HTTPException(status_code=400, detail="Amount must be >= 100 minor units")
     token = secrets.token_urlsafe(24)
+    now = datetime.now(timezone.utc)
     doc = {
         "id": str(uuid.uuid4()), "token": token,
         "amount": payload.amount, "currency": payload.currency.upper(),
         "customer_name": payload.customer_name, "customer_email": payload.customer_email,
-        "note": payload.note, "status": "pending",
-        "created_by": admin.get("email"), "created_at": datetime.now(timezone.utc).isoformat(),
+        "child_name": payload.child_name, "child_grade": payload.child_grade,
+        "note": payload.note, "status": "pending", "revoked": False,
+        "created_by": admin.get("email"), "created_at": now.isoformat(),
+        "expires_at": (now + timedelta(minutes=CUSTOM_QUOTE_TTL_MINUTES)).isoformat(),
     }
     await db.custom_quotes.insert_one(doc)
+    background.add_task(_send_to_google_sheet_sync, {
+        "token": token, "amount": payload.amount / 100, "currency": doc["currency"],
+        "customer_name": payload.customer_name, "customer_email": payload.customer_email,
+        "child_name": payload.child_name, "child_grade": payload.child_grade,
+        "note": payload.note, "status": "link created", "created_by": admin.get("email"),
+        "created_at": now.isoformat(),
+    }, "Custom Payments")
     frontend_url = os.environ.get("FRONTEND_URL", "https://rynspireedu.com")
-    return {"token": token, "url": f"{frontend_url}/pay/{token}", "amount": payload.amount, "currency": doc["currency"]}
+    return {"token": token, "url": f"{frontend_url}/pay/{token}", "amount": payload.amount,
+            "currency": doc["currency"], "expires_at": doc["expires_at"]}
 
 @api_router.get("/admin/custom-quotes")
 async def list_custom_quotes(admin=Depends(require_role("admin", "owner"))):
@@ -878,26 +910,47 @@ async def list_custom_quotes(admin=Depends(require_role("admin", "owner"))):
     frontend_url = os.environ.get("FRONTEND_URL", "https://rynspireedu.com")
     for q in quotes:
         q["url"] = f"{frontend_url}/pay/{q['token']}"
+        q["display_status"] = _quote_public_status(q)
     return quotes
+
+@api_router.patch("/admin/custom-quotes/{token}/revoke")
+async def revoke_custom_quote(token: str, admin=Depends(require_role("admin", "owner"))):
+    q = await db.custom_quotes.find_one({"token": token})
+    if not q:
+        raise HTTPException(status_code=404, detail="Quote not found")
+    # Soft-revoke rather than delete, so it stays visible in your dashboard
+    # and the Google Sheet as a record of what happened — a deleted row
+    # would quietly disappear from your own history too.
+    await db.custom_quotes.update_one(
+        {"token": token},
+        {"$set": {"revoked": True, "revoked_at": datetime.now(timezone.utc).isoformat(), "revoked_by": admin.get("email")}}
+    )
+    return {"ok": True}
 
 @api_router.get("/custom-quotes/{token}")
 async def get_custom_quote(token: str):
     q = await db.custom_quotes.find_one({"token": token}, {"_id": 0})
     if not q:
-        raise HTTPException(status_code=404, detail="This payment link is invalid or has expired.")
+        raise HTTPException(status_code=404, detail="This payment link is invalid.")
     return {
         "amount": q["amount"], "currency": q["currency"],
         "customer_name": q.get("customer_name"), "note": q.get("note"),
-        "status": q["status"],
+        "child_name": q.get("child_name"), "child_grade": q.get("child_grade"),
+        "status": _quote_public_status(q), "expires_at": q.get("expires_at"),
     }
 
 @api_router.post("/custom-quotes/{token}/create-order")
-async def create_custom_quote_order(token: str):
+async def create_custom_quote_order(token: str, request: Request):
     q = await db.custom_quotes.find_one({"token": token})
     if not q:
-        raise HTTPException(status_code=404, detail="This payment link is invalid or has expired.")
-    if q["status"] == "paid":
+        raise HTTPException(status_code=404, detail="This payment link is invalid.")
+    status = _quote_public_status(q)
+    if status == "paid":
         raise HTTPException(status_code=400, detail="This payment link has already been paid.")
+    if status == "revoked":
+        raise HTTPException(status_code=400, detail="This payment link has been disabled by the merchant.")
+    if status == "expired":
+        raise HTTPException(status_code=400, detail="This payment link has expired. Please ask for a new one.")
     rc = _razorpay_client()
     try:
         order = rc.order.create({
@@ -906,7 +959,12 @@ async def create_custom_quote_order(token: str):
             "notes": {"custom_quote_token": token, "note": q.get("note") or ""},
             "payment_capture": 1,
         })
-        await db.custom_quotes.update_one({"token": token}, {"$set": {"razorpay_order_id": order["id"]}})
+        # Logged for fraud/dispute review — not shown publicly anywhere.
+        client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "").split(",")[0].strip()
+        await db.custom_quotes.update_one({"token": token}, {"$set": {
+            "razorpay_order_id": order["id"],
+            "payer_ip": client_ip, "payer_user_agent": request.headers.get("user-agent", ""),
+        }})
         return {"order_id": order["id"], "amount": order["amount"], "currency": order["currency"],
                 "key_id": os.environ.get("RAZORPAY_KEY_ID", "")}
     except razorpay.errors.BadRequestError as e:
@@ -919,7 +977,7 @@ async def create_custom_quote_order(token: str):
 async def verify_custom_quote(token: str, payload: CustomQuoteVerifyIn, background: BackgroundTasks):
     q = await db.custom_quotes.find_one({"token": token})
     if not q:
-        raise HTTPException(status_code=404, detail="This payment link is invalid or has expired.")
+        raise HTTPException(status_code=404, detail="This payment link is invalid.")
     secret = os.environ.get("RAZORPAY_KEY_SECRET", "")
     if not secret:
         raise HTTPException(status_code=500, detail="Razorpay is not configured")
@@ -928,13 +986,55 @@ async def verify_custom_quote(token: str, payload: CustomQuoteVerifyIn, backgrou
     if not hmac.compare_digest(expected, payload.razorpay_signature):
         await db.custom_quotes.update_one({"token": token}, {"$set": {"status": "signature_mismatch"}})
         raise HTTPException(status_code=400, detail="Invalid signature")
+
+    now = datetime.now(timezone.utc)
+    care = os.environ.get("CARE_EMAIL", "care@rynspireedu.com")
+
+    # Rare race condition: the link was revoked (or expired) in the exact
+    # window between order creation and this verify call, but Razorpay had
+    # already captured the charge by the time we got here — see chat for
+    # why this can't be prevented after the fact. Flag it clearly instead
+    # of silently treating it as a normal success; defaults to manual
+    # review rather than an automatic refund.
+    was_revoked_or_expired = q.get("revoked") or _quote_public_status(q) == "expired"
+    if was_revoked_or_expired:
+        await db.custom_quotes.update_one(
+            {"token": token},
+            {"$set": {"status": "paid_but_revoked", "payment_id": payload.razorpay_payment_id, "paid_at": now.isoformat()}}
+        )
+        background.add_task(_send_email_sync, [care],
+            "⚠️ ACTION NEEDED: payment captured on a revoked/expired link",
+            f"""<div style="font-family:Outfit,Arial,sans-serif;max-width:520px;">
+            <h2 style="color:#b91c1c;">A payment was captured after this link was revoked or expired</h2>
+            <p>This needs your manual review — please check this payment in your Razorpay dashboard and refund it if appropriate.</p>
+            <p>Amount: <strong>{q['amount']/100} {q['currency']}</strong><br/>
+            Customer: {q.get('customer_name') or '—'} ({q.get('customer_email') or '—'})<br/>
+            Order ID: <code>{payload.razorpay_order_id}</code><br/>Payment ID: <code>{payload.razorpay_payment_id}</code></p>
+            </div>""", care)
+        background.add_task(_send_to_google_sheet_sync, {
+            "token": token, "status": "⚠️ PAID BUT REVOKED — needs manual refund review",
+            "payment_id": payload.razorpay_payment_id, "paid_at": now.isoformat(),
+        }, "Custom Payments")
+        return {"ok": True, "status": "paid_but_revoked"}
+
     await db.custom_quotes.update_one(
         {"token": token},
-        {"$set": {"status": "paid", "payment_id": payload.razorpay_payment_id,
-                  "paid_at": datetime.now(timezone.utc).isoformat()}}
+        {"$set": {"status": "paid", "payment_id": payload.razorpay_payment_id, "paid_at": now.isoformat()}}
     )
+    background.add_task(_send_to_google_sheet_sync, {
+        "token": token, "status": "paid", "payment_id": payload.razorpay_payment_id, "paid_at": now.isoformat(),
+    }, "Custom Payments")
+    # Notify the admin who manages these, same info as the Sheet but
+    # immediate — doesn't require opening the Sheet to notice.
+    background.add_task(_send_email_sync, [care], "💰 Custom payment received · RynSpireEdu",
+        f"""<div style="font-family:Outfit,Arial,sans-serif;max-width:520px;">
+        <h2 style="color:#166534;">Payment received</h2>
+        <p>Amount: <strong>{q['amount']/100} {q['currency']}</strong>{f" — {q['note']}" if q.get('note') else ""}</p>
+        <p>From: {q.get('customer_name') or '—'} ({q.get('customer_email') or '—'})
+        {f"<br/>For: {q.get('child_name')} ({q.get('child_grade')})" if q.get('child_name') else ""}</p>
+        <p style="color:#6b7280;font-size:13px;">Payment ID: <code>{payload.razorpay_payment_id}</code></p>
+        </div>""", care)
     if q.get("customer_email"):
-        care = os.environ.get("CARE_EMAIL", "care@rynspireedu.com")
         html = f"""
         <div style="font-family:Outfit,Arial,sans-serif;max-width:520px;color:#1a1235;">
           <h2 style="color:#3b1a70;">Payment received — thank you! 🎉</h2>
