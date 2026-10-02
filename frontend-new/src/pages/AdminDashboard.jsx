@@ -1,17 +1,21 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import DashboardShell from "@/components/DashboardShell";
 import api, { API_BASE } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { LayoutDashboard, Users, GraduationCap, Calendar, ShieldCheck, DownloadCloud, CreditCard, Eye, Mail, Phone, MapPin, Clock, FileText, Trash2 } from "lucide-react";
+import { Users, GraduationCap, Calendar, ShieldCheck, DownloadCloud, CreditCard, Eye, Mail, Phone, MapPin, Clock, FileText, Trash2 } from "lucide-react";
 import CustomQuotesPanel from "@/components/CustomQuotesPanel";
 
-const nav = [{ to: "/app/admin", label: "Overview", icon: LayoutDashboard, end: true }];
+const nav = [
+  { to: "/app/admin", label: "Demo bookings", icon: Calendar, end: true },
+  { to: "/app/admin/users", label: "Users", icon: Users },
+  { to: "/app/admin/payment-links", label: "Payment links", icon: CreditCard },
+];
 
 const roleColors = {
   admin: "bg-accent/20 border-accent/40",
@@ -22,6 +26,12 @@ const roleColors = {
 };
 
 export default function AdminDashboard() {
+  const location = useLocation();
+  const activeSection = location.pathname === "/app/admin/users" ? "users"
+    : location.pathname === "/app/admin/payment-links" ? "payment-links"
+    : "demos";
+  const sectionTitle = { demos: "Admin · Demo bookings", users: "Admin · Users", "payment-links": "Admin · Payment links" }[activeSection];
+
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
 
@@ -83,11 +93,11 @@ export default function AdminDashboard() {
   ] : [];
 
   return (
-    <DashboardShell nav={nav} title="Admin overview">
+    <DashboardShell nav={nav} title={sectionTitle}>
       <div className="grid gap-6">
         <div className="rounded-2xl border border-border bg-card p-6 lg:p-8 flex items-center justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-primary/80">RynSpireEdu · SpireEdu Services</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-primary/80">RynSpireEdu</p>
             <h2 className="font-display text-2xl lg:text-3xl mt-2">Business overview</h2>
             <p className="text-muted-foreground mt-2 text-sm max-w-lg">Demo bookings, users, and payments — at a glance.</p>
           </div>
@@ -106,15 +116,9 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        <Tabs defaultValue="demos" className="w-full">
-          <TabsList>
-            <TabsTrigger value="demos" data-testid="tab-demos">Demo bookings</TabsTrigger>
-            <TabsTrigger value="users" data-testid="tab-users">Users</TabsTrigger>
-            <TabsTrigger value="payment-links" data-testid="tab-payment-links">Payment links</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="demos">
-            <div className="rounded-2xl border border-border bg-card p-6 mt-4">
+        <div className="w-full">
+          {activeSection === "demos" && (
+            <div className="rounded-2xl border border-border bg-card p-6">
               <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
                 <div>
                   <h3 className="font-display text-xl">Demo bookings</h3>
@@ -169,10 +173,10 @@ export default function AdminDashboard() {
                 </div>
               )}
             </div>
-          </TabsContent>
+          )}
 
-          <TabsContent value="users">
-            <div className="rounded-2xl border border-border bg-card p-6 mt-4">
+          {activeSection === "users" && (
+            <div className="rounded-2xl border border-border bg-card p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-display text-xl">All users</h3>
                 <Badge variant="outline" className="border-accent/40">{users.length} total</Badge>
@@ -208,14 +212,10 @@ export default function AdminDashboard() {
                 </Table>
               </div>
             </div>
-          </TabsContent>
+          )}
 
-          <TabsContent value="payment-links">
-            <div className="mt-4">
-              <CustomQuotesPanel />
-            </div>
-          </TabsContent>
-        </Tabs>
+          {activeSection === "payment-links" && <CustomQuotesPanel />}
+        </div>
       </div>
 
       {/* Demo Details Modal */}

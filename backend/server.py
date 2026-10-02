@@ -316,10 +316,10 @@ class VerifyPaymentIn(BaseModel):
 class CustomQuoteIn(BaseModel):
     amount: int = Field(gt=0, description="Amount in the smallest currency unit (paise/cents)")
     currency: str = "USD"
-    customer_name: Optional[str] = None
-    customer_email: Optional[EmailStr] = None
-    child_name: Optional[str] = None
-    child_grade: Optional[str] = None
+    customer_name: str = Field(min_length=1)
+    customer_email: EmailStr
+    child_name: str = Field(min_length=1)
+    child_grade: str = Field(min_length=1)
     note: Optional[str] = None
 
 class CustomQuoteVerifyIn(BaseModel):

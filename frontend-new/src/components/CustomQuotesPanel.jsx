@@ -61,6 +61,10 @@ export default function CustomQuotesPanel() {
   const createQuote = async () => {
     const numeric = parseFloat(amount);
     if (!numeric || numeric <= 0) return toast.error("Enter a valid amount.");
+    if (!customerName.trim()) return toast.error("Parent/customer name is required.");
+    if (!customerEmail.trim()) return toast.error("Customer email is required.");
+    if (!childName.trim()) return toast.error("Child's name is required.");
+    if (!childGrade.trim()) return toast.error("Child's grade is required.");
     setBusy(true);
     try {
       const minorAmount = Math.round(numeric * 100);
@@ -123,24 +127,24 @@ export default function CustomQuotesPanel() {
             </select>
           </div>
           <div>
-            <Label htmlFor="cq-name">Parent/customer name (optional)</Label>
-            <Input id="cq-name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="mt-1.5 rounded-xl" />
+            <Label htmlFor="cq-name">Parent/customer name *</Label>
+            <Input id="cq-name" required value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="mt-1.5 rounded-xl" />
           </div>
           <div>
-            <Label htmlFor="cq-email">Customer email (optional)</Label>
-            <Input id="cq-email" type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} className="mt-1.5 rounded-xl" />
+            <Label htmlFor="cq-email">Customer email *</Label>
+            <Input id="cq-email" required type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} className="mt-1.5 rounded-xl" />
           </div>
           <div>
-            <Label htmlFor="cq-child-name">Child's name (optional)</Label>
-            <Input id="cq-child-name" value={childName} onChange={(e) => setChildName(e.target.value)} className="mt-1.5 rounded-xl" />
+            <Label htmlFor="cq-child-name">Child's name *</Label>
+            <Input id="cq-child-name" required value={childName} onChange={(e) => setChildName(e.target.value)} className="mt-1.5 rounded-xl" />
           </div>
           <div>
-            <Label htmlFor="cq-child-grade">Child's grade (optional)</Label>
-            <Input id="cq-child-grade" value={childGrade} onChange={(e) => setChildGrade(e.target.value)} className="mt-1.5 rounded-xl" placeholder="e.g. Grade 8" />
+            <Label htmlFor="cq-child-grade">Child's grade *</Label>
+            <Input id="cq-child-grade" required value={childGrade} onChange={(e) => setChildGrade(e.target.value)} className="mt-1.5 rounded-xl" placeholder="e.g. Grade 8" />
           </div>
         </div>
         <div className="mt-4">
-          <Label htmlFor="cq-note">Note (shown to the customer, e.g. plan description)</Label>
+          <Label htmlFor="cq-note">Note (optional — shown to the customer, e.g. plan description)</Label>
           <Input id="cq-note" value={note} onChange={(e) => setNote(e.target.value)} className="mt-1.5 rounded-xl" placeholder="e.g. Custom 6-month Physics plan" />
         </div>
         <Button onClick={createQuote} disabled={busy} className="mt-6 pill-btn bg-primary text-primary-foreground hover:bg-accent hover:text-accent-foreground">

@@ -85,7 +85,13 @@ export default function FloatingWhatsApp() {
     }
   }, []);
 
-  if (location.pathname.startsWith("/book-demo") || location.pathname === "/checkout" || location.pathname === "/login" || location.pathname === "/register") {
+  if (
+    location.pathname.startsWith("/book-demo") ||
+    location.pathname === "/checkout" ||
+    location.pathname === "/login" ||
+    location.pathname === "/register" ||
+    location.pathname.startsWith("/app/") // logged-in dashboards (student/tutor/admin) — not public lead-gen context
+  ) {
     return null;
   }
 

@@ -1,9 +1,10 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
-import { GraduationCap, LogOut, Sun, Moon } from "lucide-react";
+import { LogOut, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import BrandMark from "@/components/BrandMark";
 
 export default function DashboardShell({ nav, title, children }) {
   const { user, logout } = useAuth();
@@ -16,10 +17,7 @@ export default function DashboardShell({ nav, title, children }) {
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-[260px_1fr] bg-background">
       <aside className="hidden lg:flex flex-col border-r border-border bg-card">
         <Link to="/" className="flex items-center gap-2 p-6 border-b border-border" data-testid="dash-logo">
-          <span className="h-9 w-9 rounded-xl bg-primary text-primary-foreground grid place-items-center">
-            <GraduationCap size={18} />
-          </span>
-          <span className="font-display text-xl tracking-tight">Ryn<span className="text-accent">Spire</span></span>
+          <BrandMark size="sm" />
         </Link>
 
         <nav className="flex-1 p-4 space-y-1" aria-label="Dashboard">

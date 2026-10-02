@@ -90,6 +90,8 @@ function App() {
                   <Route path="/app/student/book" element={<ProtectedRoute roles={["student", "parent"]}><BookSession /></ProtectedRoute>} />
                   <Route path="/app/tutor" element={<ProtectedRoute roles={["tutor"]}><TutorDashboard /></ProtectedRoute>} />
                   <Route path="/app/admin" element={<ProtectedRoute roles={["admin", "owner"]}><AdminDashboard /></ProtectedRoute>} />
+                  <Route path="/app/admin/users" element={<ProtectedRoute roles={["admin", "owner"]}><AdminDashboard /></ProtectedRoute>} />
+                  <Route path="/app/admin/payment-links" element={<ProtectedRoute roles={["admin", "owner"]}><AdminDashboard /></ProtectedRoute>} />
                   <Route path="/app/admin/custom-quotes" element={<ProtectedRoute roles={["admin", "owner"]}><AdminCustomQuotes /></ProtectedRoute>} />
                   <Route path="/pay/:token" element={<CustomPay />} />
                   <Route path="/session/:id" element={<ProtectedRoute><SessionRoom /></ProtectedRoute>} />
