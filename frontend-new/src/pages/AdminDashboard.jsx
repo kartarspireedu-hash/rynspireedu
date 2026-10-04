@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Users, GraduationCap, Calendar, ShieldCheck, DownloadCloud, CreditCard, Eye, Mail, Phone, MapPin, Clock, FileText, Trash2 } from "lucide-react";
+import { Users, GraduationCap, Calendar, DownloadCloud, CreditCard, Eye, Mail, Phone, MapPin, Clock, FileText, Trash2, RefreshCw } from "lucide-react";
 import CustomQuotesPanel from "@/components/CustomQuotesPanel";
 
 const nav = [
@@ -65,19 +65,33 @@ export default function AdminDashboard() {
     }
   };
 
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadAll = async ({ showSpinner } = {}) => {
+    if (showSpinner) setRefreshing(true);
+    try {
+      const [s, u, d] = await Promise.all([
+        api.get("/admin/stats"),
+        api.get("/admin/users"),
+        api.get("/admin/demos"),
+      ]);
+      setStats(s.data);
+      setUsers(u.data);
+      setDemos(d.data);
+      setLastUpdated(new Date());
+    } finally {
+      setLoading(false);
+      if (showSpinner) setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
-    (async () => {
-      try {
-        const [s, u, d] = await Promise.all([
-          api.get("/admin/stats"),
-          api.get("/admin/users"),
-          api.get("/admin/demos"),
-        ]);
-        setStats(s.data);
-        setUsers(u.data);
-        setDemos(d.data);
-      } finally { setLoading(false); }
-    })();
+    loadAll();
+    // Auto-refresh every 20s so new demo bookings / payments show up
+    // without needing a manual page reload.
+    const interval = setInterval(() => loadAll(), 20000);
+    return () => clearInterval(interval);
   }, []);
 
   const downloadCsv = () => {
@@ -95,13 +109,15 @@ export default function AdminDashboard() {
   return (
     <DashboardShell nav={nav} title={sectionTitle}>
       <div className="grid gap-6">
-        <div className="rounded-2xl border border-border bg-card p-6 lg:p-8 flex items-center justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-primary/80">RynSpireEdu</p>
-            <h2 className="font-display text-2xl lg:text-3xl mt-2">Business overview</h2>
-            <p className="text-muted-foreground mt-2 text-sm max-w-lg">Demo bookings, users, and payments — at a glance.</p>
+        <div className="flex items-center justify-between -mb-2">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            Live — refreshes every 20s
+            {lastUpdated && <span className="hidden sm:inline">· updated {lastUpdated.toLocaleTimeString()}</span>}
           </div>
-          <ShieldCheck size={40} className="text-primary hidden sm:block" />
+          <Button variant="ghost" size="sm" onClick={() => loadAll({ showSpinner: true })} disabled={refreshing} data-testid="admin-refresh-btn">
+            <RefreshCw size={13} className={`mr-1.5 ${refreshing ? "animate-spin" : ""}`} /> Refresh now
+          </Button>
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">

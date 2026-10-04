@@ -48,15 +48,22 @@ export default function CustomQuotesPanel() {
   const [quotes, setQuotes] = useState([]);
   const [loadingList, setLoadingList] = useState(true);
 
-  const loadQuotes = () => {
-    setLoadingList(true);
+  const loadQuotes = ({ showSpinner } = {}) => {
+    if (showSpinner) setLoadingList(true);
     api.get("/admin/custom-quotes")
       .then(({ data }) => setQuotes(data))
       .catch(() => toast.error("Could not load past quotes"))
-      .finally(() => setLoadingList(false));
+      .finally(() => { if (showSpinner) setLoadingList(false); });
   };
 
-  useEffect(() => { loadQuotes(); }, []);
+  useEffect(() => {
+    loadQuotes({ showSpinner: true });
+    // Same auto-refresh pattern as the rest of the admin dashboard, so a
+    // newly completed payment shows up without a manual page reload.
+    // Background refreshes don't show the spinner — only the first load.
+    const interval = setInterval(() => loadQuotes(), 20000);
+    return () => clearInterval(interval);
+  }, []);
 
   const createQuote = async () => {
     const numeric = parseFloat(amount);

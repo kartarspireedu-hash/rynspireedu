@@ -4,6 +4,14 @@ import { useTheme } from "@/context/ThemeContext";
 import { LogOut, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import BrandMark from "@/components/BrandMark";
 
 export default function DashboardShell({ nav, title, children }) {
@@ -41,23 +49,6 @@ export default function DashboardShell({ nav, title, children }) {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-border flex items-center gap-3">
-          <Avatar className="h-9 w-9">
-            <AvatarFallback className="bg-primary text-primary-foreground text-xs">{initials}</AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{user?.name}</p>
-            <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
-          </div>
-          <button
-            onClick={async () => { await logout(); navigate("/"); }}
-            className="h-8 w-8 grid place-items-center rounded-md hover:bg-secondary"
-            data-testid="dash-logout-btn"
-            aria-label="Logout"
-          >
-            <LogOut size={14} />
-          </button>
-        </div>
       </aside>
 
       <div className="flex flex-col min-w-0">
@@ -79,6 +70,32 @@ export default function DashboardShell({ nav, title, children }) {
               <Button asChild variant="outline" size="sm" className="pill-btn hidden sm:inline-flex" data-testid="dash-home-btn">
                 <Link to="/">Marketing Site</Link>
               </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="h-9 w-9 rounded-full overflow-hidden ring-1 ring-border hover:ring-accent transition-colors"
+                    data-testid="dash-account-btn"
+                    aria-label="Account menu"
+                  >
+                    <Avatar className="h-9 w-9">
+                      <AvatarFallback className="bg-primary text-primary-foreground text-xs">{initials}</AvatarFallback>
+                    </Avatar>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>
+                    <p className="text-sm font-medium truncate">{user?.name}</p>
+                    <p className="text-xs text-muted-foreground font-normal capitalize">{user?.role}</p>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/">Marketing Site</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={async () => { await logout(); navigate("/"); }} data-testid="dash-logout-btn">
+                    <LogOut size={14} className="mr-2" /> Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </header>
