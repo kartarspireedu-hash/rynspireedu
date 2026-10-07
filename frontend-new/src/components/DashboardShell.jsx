@@ -53,12 +53,12 @@ export default function DashboardShell({ nav, title, children }) {
 
       <div className="flex flex-col min-w-0">
         <header className="glass-header sticky top-0 z-40">
-          <div className="flex items-center justify-between h-16 px-6 lg:px-10">
-            <div>
+          <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-10 gap-3">
+            <div className="min-w-0">
               <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Dashboard</p>
-              <h1 className="font-display text-xl leading-none mt-1">{title}</h1>
+              <h1 className="font-display text-base sm:text-xl leading-none mt-1 truncate">{title}</h1>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={toggle}
                 data-testid="dash-theme-toggle"
@@ -98,8 +98,35 @@ export default function DashboardShell({ nav, title, children }) {
               </DropdownMenu>
             </div>
           </div>
+          {/* Phone / tablet navigation: the left sidebar is hidden below lg,
+              so without this bar the Users and Payment links sections
+              could not be reached on small screens. */}
+          <nav
+            className="lg:hidden flex gap-2 overflow-x-auto px-4 sm:px-6 pb-3 pt-1 border-t border-border/60 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            aria-label="Dashboard sections"
+            data-testid="dash-mobile-nav"
+          >
+            {nav.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                data-testid={`mobilenav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
+                className={({ isActive }) =>
+                  `shrink-0 inline-flex items-center gap-2 min-h-[40px] px-4 rounded-full text-sm whitespace-nowrap border transition-colors ${
+                    isActive
+                      ? "bg-primary text-primary-foreground border-primary font-medium"
+                      : "bg-card text-muted-foreground border-border"
+                  }`
+                }
+              >
+                <item.icon size={15} />
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
         </header>
-        <main className="p-6 lg:p-10 flex-1 min-w-0">{children}</main>
+        <main className="p-4 sm:p-6 lg:p-10 flex-1 min-w-0">{children}</main>
       </div>
     </div>
   );

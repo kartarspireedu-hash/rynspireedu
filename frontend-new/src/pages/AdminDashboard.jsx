@@ -109,7 +109,7 @@ export default function AdminDashboard() {
   return (
     <DashboardShell nav={nav} title={sectionTitle}>
       <div className="grid gap-6">
-        <div className="flex items-center justify-between -mb-2">
+        <div className="flex items-center justify-between gap-2 -mb-2">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
             Live — refreshes every 20s
@@ -120,21 +120,21 @@ export default function AdminDashboard() {
           </Button>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {cards.map((s) => (
-            <div key={s.label} data-testid={`admin-stat-${s.label.toLowerCase().replace(/\s+/g, "-")}`} className="rounded-2xl border border-border bg-card p-5 card-lift">
+            <div key={s.label} data-testid={`admin-stat-${s.label.toLowerCase().replace(/\s+/g, "-")}`} className="rounded-2xl border border-border bg-card p-4 sm:p-5 card-lift">
               <div className="flex items-center justify-between">
-                <p className="text-xs uppercase tracking-[0.15em] text-muted-foreground">{s.label}</p>
+                <p className="text-[11px] sm:text-xs uppercase tracking-[0.12em] text-muted-foreground">{s.label}</p>
                 <s.icon size={16} className="text-accent" />
               </div>
-              <p className="font-display text-3xl mt-3">{s.value}</p>
+              <p className="font-display text-2xl sm:text-3xl mt-2 sm:mt-3">{s.value}</p>
             </div>
           ))}
         </div>
 
         <div className="w-full">
           {activeSection === "demos" && (
-            <div className="rounded-2xl border border-border bg-card p-6">
+            <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
                 <div>
                   <h3 className="font-display text-xl">Demo bookings</h3>
@@ -149,7 +149,30 @@ export default function AdminDashboard() {
               </div>
               {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
               {!loading && (
-                <div className="overflow-x-auto">
+                <div className="md:hidden space-y-3" data-testid="demo-cards">
+                  {demos.map((d) => (
+                    <div key={d.id} className="rounded-xl border border-border p-4" data-testid={`demo-card-${d.id}`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="font-medium min-w-0 break-words">{d.name}</div>
+                        <Badge variant="outline" className="bg-accent/15 border-accent/40 shrink-0">{d.status}</Badge>
+                      </div>
+                      <div className="mt-2 text-xs space-y-0.5">
+                        <div className="break-all">{d.email}</div>
+                        <div className="text-muted-foreground">{d.phone}</div>
+                      </div>
+                      <div className="mt-2 text-sm">{d.student_class} · {d.subject}</div>
+                      <div className="text-sm font-mono">{d.demo_date} {d.demo_time}</div>
+                      <div className="text-sm text-muted-foreground">{d.city}, {d.country}</div>
+                      <Button size="sm" variant="outline" className="pill-btn h-10 w-full mt-3" onClick={() => setSelected(d)}>
+                        <Eye size={13} className="mr-1.5" /> View details
+                      </Button>
+                    </div>
+                  ))}
+                  {demos.length === 0 && <p className="text-center py-6 text-muted-foreground text-sm">No demo bookings yet.</p>}
+                </div>
+              )}
+              {!loading && (
+                <div className="hidden md:block overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -192,12 +215,30 @@ export default function AdminDashboard() {
           )}
 
           {activeSection === "users" && (
-            <div className="rounded-2xl border border-border bg-card p-6">
+            <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-display text-xl">All users</h3>
                 <Badge variant="outline" className="border-accent/40">{users.length} total</Badge>
               </div>
-              <div className="overflow-x-auto">
+              <div className="md:hidden space-y-3" data-testid="user-cards">
+                {users.map((u) => (
+                  <div key={u.id} className="rounded-xl border border-border p-4 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-medium break-words">{u.name}</div>
+                      <div className="text-xs text-muted-foreground break-all">{u.email}</div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className={roleColors[u.role] || ""}>{u.role}</Badge>
+                        <span className="text-xs">{u.country || "—"}</span>
+                        <span className="text-xs text-muted-foreground font-mono">{new Date(u.created_at).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0" onClick={() => deleteUser(u)} aria-label={`Delete ${u.name}`}>
+                      <Trash2 size={16} className="text-destructive" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <div className="hidden md:block overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -236,7 +277,7 @@ export default function AdminDashboard() {
 
       {/* Demo Details Modal */}
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <DialogContent className="max-w-lg" data-testid="demo-details-dialog">
+        <DialogContent className="w-[calc(100vw-1.5rem)] max-w-lg max-h-[90vh] overflow-y-auto" data-testid="demo-details-dialog">
           {selected && (
             <>
               <DialogHeader>
@@ -247,7 +288,7 @@ export default function AdminDashboard() {
                 <DialogDescription className="text-xs font-mono">Booking ID · {selected.id}</DialogDescription>
               </DialogHeader>
               <div className="mt-4 space-y-3 text-sm">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="rounded-xl bg-secondary/60 border border-border p-3 flex items-start gap-2">
                     <Mail size={14} className="text-primary mt-0.5" />
                     <div><div className="text-xs text-muted-foreground">Email</div><div className="break-all">{selected.email}</div></div>
@@ -257,7 +298,7 @@ export default function AdminDashboard() {
                     <div><div className="text-xs text-muted-foreground">Phone</div><div>{selected.phone}</div></div>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="rounded-xl bg-secondary/60 border border-border p-3 flex items-start gap-2">
                     <MapPin size={14} className="text-primary mt-0.5" />
                     <div><div className="text-xs text-muted-foreground">Location</div><div>{selected.city}, {selected.country}</div></div>
@@ -277,11 +318,11 @@ export default function AdminDashboard() {
                 </div>
                 <div className="text-xs text-muted-foreground">Booked {new Date(selected.created_at).toLocaleString()}</div>
               </div>
-              <div className="mt-4 flex flex-wrap items-center gap-2 justify-between">
+              <div className="mt-4 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 sm:justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">Status</span>
                   <Select value={selected.status} onValueChange={updateDemoStatus} disabled={statusBusy}>
-                    <SelectTrigger className="w-36 rounded-xl h-9" data-testid="demo-status-select"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-36 rounded-xl h-10" data-testid="demo-status-select"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="pending">Pending</SelectItem>
                       <SelectItem value="confirmed">Confirmed</SelectItem>

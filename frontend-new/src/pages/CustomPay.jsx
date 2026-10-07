@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, ShieldCheck, CheckCircle2, AlertCircle, Lock, CreditCard, Clock, Ban } from "lucide-react";
 import api from "@/lib/api";
-import { openRazorpayCheckout } from "@/lib/razorpay";
+import { openRazorpayCheckout, loadRazorpayScript } from "@/lib/razorpay";
 import { validateEmail } from "@/lib/validators";
 
 // Live "mm:ss until expiry" the payer can see too — not just the admin
@@ -46,6 +46,11 @@ export default function CustomPay() {
   const [busy, setBusy] = useState(false);
   const [paid, setPaid] = useState(false);
   const [expiredNow, setExpiredNow] = useState(false);
+
+  // Load Razorpay's checkout.js as soon as the page opens, so tapping Pay
+  // on a phone opens the sheet immediately (mobile browsers can block
+  // popups/checkouts that start after a slow network round-trip).
+  useEffect(() => { loadRazorpayScript(); }, []);
 
   useEffect(() => {
     api.get(`/custom-quotes/${token}`)
@@ -145,7 +150,7 @@ export default function CustomPay() {
         )}
 
         {!loadError && !paid && quote && !isBlocked && (
-          <div className="mt-8 rounded-3xl border border-border bg-card p-6 sm:p-8" data-testid="custom-pay-form">
+          <div className="mt-8 rounded-3xl border border-border bg-card p-4 sm:p-8" data-testid="custom-pay-form">
             <h1 className="font-display text-2xl">Complete your payment</h1>
             {quote.note && <p className="mt-1 text-sm text-muted-foreground">{quote.note}</p>}
             {quote.child_name && (
@@ -166,17 +171,17 @@ export default function CustomPay() {
             <div className="mt-6 grid gap-4">
               <div>
                 <Label htmlFor="pay-name">Your name *</Label>
-                <Input id="pay-name" required value={name} onChange={(e) => setName(e.target.value)} className="mt-1.5 rounded-xl" />
+                <Input id="pay-name" required autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} className="mt-1.5 rounded-xl h-11 text-base" />
               </div>
               <div>
                 <Label htmlFor="pay-email">Email *</Label>
-                <Input id="pay-email" required type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1.5 rounded-xl" />
+                <Input id="pay-email" required type="email" inputMode="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1.5 rounded-xl h-11 text-base" />
               </div>
             </div>
 
             <div className="mt-5 flex items-start gap-2.5">
-              <Checkbox checked={agreed} onCheckedChange={(v) => setAgreed(!!v)} className="mt-0.5" data-testid="custom-pay-terms-checkbox" />
-              <label className="text-xs text-muted-foreground leading-relaxed">
+              <Checkbox id="pay-terms" checked={agreed} onCheckedChange={(v) => setAgreed(!!v)} className="mt-0.5 h-5 w-5" data-testid="custom-pay-terms-checkbox" />
+              <label htmlFor="pay-terms" className="text-xs text-muted-foreground leading-relaxed">
                 I agree to RynSpireEdu's{" "}
                 <Link to="/terms-of-use" target="_blank" className="text-primary underline underline-offset-2">Terms of Use</Link>,{" "}
                 <Link to="/cancellation-policy" target="_blank" className="text-primary underline underline-offset-2">Cancellation Policy</Link> and{" "}
@@ -187,7 +192,7 @@ export default function CustomPay() {
             <Button
               onClick={payNow}
               disabled={busy || !agreed}
-              className="mt-5 w-full pill-btn bg-primary text-primary-foreground hover:bg-accent hover:text-accent-foreground"
+              className="mt-5 w-full h-12 pill-btn bg-primary text-primary-foreground hover:bg-accent hover:text-accent-foreground"
               data-testid="custom-pay-submit"
             >
               {busy ? (<><Loader2 size={14} className="mr-1.5 animate-spin" /> Opening secure payment…</>) : (<><ShieldCheck size={14} className="mr-1.5" /> Pay {displayAmount(quote.amount, quote.currency)}</>)}
