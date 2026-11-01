@@ -8,11 +8,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Users, GraduationCap, Calendar, DownloadCloud, CreditCard, Eye, Mail, Phone, MapPin, Clock, FileText, Trash2, RefreshCw } from "lucide-react";
+import { Users, GraduationCap, Calendar, DownloadCloud, CreditCard, Eye, Mail, Phone, MapPin, Clock, FileText, Trash2, RefreshCw, Sheet, MessageSquareHeart } from "lucide-react";
 import CustomQuotesPanel from "@/components/CustomQuotesPanel";
+import LiveSheetPanel from "@/components/LiveSheetPanel";
+import FeedbackPanel from "@/components/FeedbackPanel";
 
 const nav = [
   { to: "/app/admin", label: "Demo bookings", icon: Calendar, end: true },
+  { to: "/app/admin/live-sheet", label: "Live sheet", icon: Sheet },
+  { to: "/app/admin/feedback", label: "Feedback", icon: MessageSquareHeart },
   { to: "/app/admin/users", label: "Users", icon: Users },
   { to: "/app/admin/payment-links", label: "Payment links", icon: CreditCard },
 ];
@@ -29,8 +33,10 @@ export default function AdminDashboard() {
   const location = useLocation();
   const activeSection = location.pathname === "/app/admin/users" ? "users"
     : location.pathname === "/app/admin/payment-links" ? "payment-links"
+    : location.pathname === "/app/admin/live-sheet" ? "live-sheet"
+    : location.pathname === "/app/admin/feedback" ? "feedback"
     : "demos";
-  const sectionTitle = { demos: "Admin · Demo bookings", users: "Admin · Users", "payment-links": "Admin · Payment links" }[activeSection];
+  const sectionTitle = { demos: "Admin · Demo bookings", users: "Admin · Users", "payment-links": "Admin · Payment links", "live-sheet": "Admin · Live sheet", feedback: "Admin · Feedback" }[activeSection];
 
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
@@ -272,6 +278,8 @@ export default function AdminDashboard() {
           )}
 
           {activeSection === "payment-links" && <CustomQuotesPanel />}
+          {activeSection === "live-sheet" && <LiveSheetPanel />}
+          {activeSection === "feedback" && <FeedbackPanel />}
         </div>
       </div>
 

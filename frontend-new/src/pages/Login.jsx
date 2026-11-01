@@ -38,14 +38,14 @@ export default function Login() {
   return (
     <div className="min-h-screen">
       <SiteHeader />
-      <div className="container-x py-16 grid lg:grid-cols-2 gap-16 items-center max-w-5xl">
+      <div className="container-x py-10 sm:py-16 grid lg:grid-cols-2 gap-8 lg:gap-16 items-center max-w-5xl">
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-accent">Welcome back</p>
-          <h1 className="mt-3 font-display text-4xl lg:text-5xl leading-[1.05]">Sign in to your RynSpireEdu dashboard.</h1>
-          <p className="mt-4 text-muted-foreground">Continue your lessons, track progress and message your tutor.</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-accent">Team &amp; account login</p>
+          <h1 className="mt-3 font-display text-3xl sm:text-4xl lg:text-5xl leading-[1.05]">Sign in to your RynSpireEdu dashboard.</h1>
+          <p className="mt-4 text-muted-foreground">Sign in with your email and password.</p>
         </div>
 
-        <form onSubmit={submit} className="rounded-3xl border border-border bg-card p-8" data-testid="login-form">
+        <form onSubmit={submit} className="rounded-3xl border border-border bg-card p-5 sm:p-8" data-testid="login-form">
           <div className="flex items-center gap-2 mb-6">
             <span className="h-9 w-9 rounded-xl bg-primary text-primary-foreground grid place-items-center"><GraduationCap size={16} /></span>
             <span className="font-display text-lg">Sign in</span>
@@ -53,18 +53,18 @@ export default function Login() {
           <div className="space-y-4">
             <div>
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1.5 rounded-xl" data-testid="login-email-input" />
+              <Input id="email" type="email" required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1.5 rounded-xl" data-testid="login-email-input" />
             </div>
             <div>
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1.5 rounded-xl" data-testid="login-password-input" />
+              <Input id="password" type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1.5 rounded-xl" data-testid="login-password-input" />
             </div>
             {error && <p className="text-sm text-destructive" data-testid="login-error">{error}</p>}
             <Button type="submit" disabled={busy} className="w-full pill-btn bg-primary hover:bg-accent hover:text-accent-foreground" data-testid="login-submit-btn">
               {busy ? "Signing in..." : "Sign in"}
             </Button>
-            <p className="text-center text-sm text-muted-foreground">
-              New to RynSpireEdu? <Link to="/register" className="text-accent hover:underline" data-testid="login-register-link">Create an account</Link>
+            <p className="text-center text-xs text-muted-foreground">
+              Accounts are created by the RynSpireEdu team. Need access? <Link to="/contact" className="text-accent hover:underline">Contact us</Link>.
             </p>
           </div>
         </form>

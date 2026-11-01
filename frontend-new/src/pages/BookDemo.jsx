@@ -18,6 +18,7 @@ import { ArrowLeft, ArrowRight, CalendarIcon, CheckCircle2, Sparkles, Clock, Mai
 import api from "@/lib/api";
 import { validateEmail, validatePhoneForCountry } from "@/lib/validators";
 import { isoToFlag, DIAL_CODES } from "@/lib/dialCodes";
+import { ymd, todayInTz, maxBookableDate, nowInTz, isClosedDay, isBookableDate, nextOpenDays, DEFAULT_TZ_BY_COUNTRY } from "@/lib/demoConfig";
 
 // We currently serve Australia, New Zealand, the United States & Canada.
 // Other countries are shown for context but disabled (visual only, per request).
@@ -103,16 +104,6 @@ const tzLabel = (t) => {
   return offset ? `${base} (${offset})` : base;
 };
 
-// Returns wall-clock "now" as it would read on a clock in the given IANA
-// timezone (used only for comparing hour/date fields, not real epoch math).
-function nowInTz(tz) {
-  try {
-    return new Date(new Date().toLocaleString("en-US", { timeZone: tz }));
-  } catch {
-    return new Date();
-  }
-}
-
 function fmtDate(d) {
   return d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 }
@@ -126,13 +117,22 @@ const STEPS = [
 
 export default function BookDemo() {
   const [step, setStep] = useState(1); // 1=schedule, 2=details, 3=review, 4=success
+  // Default to the visitor's own timezone when it's one we serve, else Sydney.
+  const [tz, setTz] = useState(() => {
+    try {
+      const guess = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (TZ_PRIMARY.includes(guess)) return guess;
+    } catch {}
+    return "Australia/Sydney";
+  });
+  // `date` is a CALENDAR date in the family's timezone (local midnight Date).
   const [date, setDate] = useState(() => {
-    let d = new Date(Date.now() + 24 * 3600 * 1000);
-    if (d.getDay() === 0) d.setDate(d.getDate() + 1); // skip Sunday
+    const d = todayInTz("Australia/Sydney");
+    d.setDate(d.getDate() + 1);
+    while (isClosedDay(d)) d.setDate(d.getDate() + 1); // no Sundays
     return d;
   });
   const [time, setTime] = useState("16:00");
-  const [tz, setTz] = useState("Australia/Sydney");
   const [dateOpen, setDateOpen] = useState(false);
 
   const [form, setForm] = useState({
@@ -150,7 +150,7 @@ export default function BookDemo() {
   const [fieldErrors, setFieldErrors] = useState({});
   const pixelFiredRef = useRef(false);
 
-  const dateKey = date.toISOString().slice(0, 10);
+  const dateKey = ymd(date);
 
   // Pre-fill phone dial code based on visitor's IP, same pattern as currency detection.
   useEffect(() => {
@@ -176,7 +176,7 @@ export default function BookDemo() {
   // greyed out; at exactly 8:00am, 9:00 is exactly 60 min away and still bookable.
   const pastTimesToday = useMemo(() => {
     const tzNow = nowInTz(tz);
-    const todayKeyInTz = `${tzNow.getFullYear()}-${String(tzNow.getMonth() + 1).padStart(2, "0")}-${String(tzNow.getDate()).padStart(2, "0")}`;
+    const todayKeyInTz = ymd(tzNow);
     if (todayKeyInTz !== dateKey) return [];
     const nowMinutes = tzNow.getHours() * 60 + tzNow.getMinutes();
     return TIME_SLOTS.filter((t) => {
@@ -208,11 +208,24 @@ export default function BookDemo() {
 
   const cities = useMemo(() => CITIES_BY_COUNTRY[form.country] || ["Other"], [form.country]);
 
-  const setField = (k, v) => setForm((f) => {
-    const next = { ...f, [k]: v };
-    if (k === "country") next.city = (CITIES_BY_COUNTRY[v] || ["Other"])[0];
-    return next;
-  });
+  // Changing the timezone also keeps the chosen day valid there (not already
+  // past, never a Sunday) by moving to the next open day if it isn't.
+  const changeTz = (t) => {
+    setTz(t);
+    setDate((d) => (isBookableDate(d, t) ? d : nextOpenDays(t, 1)[0]));
+  };
+
+  const setField = (k, v) => {
+    // Choosing a home country also switches to that country's timezone, so
+    // "today", the 60-minute notice rule and the no-Sunday rule all follow
+    // the family's own country rather than the visitor's browser.
+    if (k === "country" && DEFAULT_TZ_BY_COUNTRY[v]) changeTz(DEFAULT_TZ_BY_COUNTRY[v]);
+    setForm((f) => {
+      const next = { ...f, [k]: v };
+      if (k === "country") next.city = (CITIES_BY_COUNTRY[v] || ["Other"])[0];
+      return next;
+    });
+  };
 
   const displayCountry = form.country;
   const displayCity = form.city === "Other" && form.city_other ? form.city_other : form.city;
@@ -246,7 +259,7 @@ export default function BookDemo() {
       const payload = {
         ...form,
         phone: `${dialCode} ${form.phone}`.trim(),
-        demo_date: date.toISOString().slice(0, 10),
+        demo_date: ymd(date),
         demo_time: time,
         timezone: tz,
         accepted_terms: agreed,
@@ -332,12 +345,8 @@ export default function BookDemo() {
                           mode="single"
                           selected={date}
                           onSelect={(d) => { if (d) { setDate(d); setDateOpen(false); } }}
-                          disabled={(d) => {
-                            const today = new Date(new Date().setHours(0, 0, 0, 0));
-                            const maxDate = new Date(today);
-                            maxDate.setMonth(maxDate.getMonth() + 2);
-                            return d < today || d > maxDate || d.getDay() === 0;
-                          }}
+                          defaultMonth={date}
+                          disabled={(d) => d < todayInTz(tz) || d > maxBookableDate(tz) || isClosedDay(d)}
                           initialFocus
                         />
                       </PopoverContent>
@@ -361,7 +370,8 @@ export default function BookDemo() {
                   </div>
                   <div className="sm:col-span-2">
                     <Label className="text-xs">Your Timezone</Label>
-                    <Select value={tz} onValueChange={setTz}>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">Dates and times are in your home timezone. We're closed on Sundays there.</p>
+                    <Select value={tz} onValueChange={changeTz}>
                       <SelectTrigger className="mt-1.5 rounded-xl" data-testid="demo-tz-select"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectGroup>

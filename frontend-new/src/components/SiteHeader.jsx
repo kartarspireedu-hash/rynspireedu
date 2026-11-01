@@ -72,6 +72,11 @@ export default function SiteHeader() {
             </Button>
           )}
 
+          {!user && (
+            <Button asChild variant="outline" size="sm" className="pill-btn hidden sm:inline-flex" data-testid="header-login-btn">
+              <Link to="/login">Login</Link>
+            </Button>
+          )}
           {user && (
             <Button asChild variant="outline" size="sm" className="pill-btn hidden md:inline-flex" data-testid="header-dashboard-btn">
               <Link to={dashboardPath}>Dashboard</Link>
@@ -116,6 +121,21 @@ export default function SiteHeader() {
               <Button asChild size="sm" className="pill-btn bg-primary text-primary-foreground hover:bg-accent hover:text-accent-foreground w-full" onClick={() => setMobileOpen(false)}>
                 <Link to="/book-demo">Book Free 25-min Demo</Link>
               </Button>
+            )}
+            {!user && (
+              <Button asChild variant="outline" size="sm" className="pill-btn w-full" onClick={() => setMobileOpen(false)} data-testid="mobile-login-btn">
+                <Link to="/login">Login</Link>
+              </Button>
+            )}
+            {user && (
+              <div className="flex gap-2">
+                <Button asChild variant="outline" size="sm" className="pill-btn flex-1" onClick={() => setMobileOpen(false)}>
+                  <Link to={dashboardPath}>Dashboard</Link>
+                </Button>
+                <Button variant="ghost" size="sm" className="pill-btn flex-1" onClick={async () => { setMobileOpen(false); await logout(); navigate("/"); }}>
+                  Logout
+                </Button>
+              </div>
             )}
           </div>
         </div>

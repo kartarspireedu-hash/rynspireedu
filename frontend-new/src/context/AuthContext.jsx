@@ -34,16 +34,6 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const register = async (payload) => {
-    try {
-      const { data } = await api.post("/auth/register", payload);
-      setUser(data);
-      return { ok: true, user: data };
-    } catch (e) {
-      return { ok: false, error: formatApiErrorDetail(e.response?.data?.detail) || e.message };
-    }
-  };
-
   const logout = async () => {
     try {
       await api.post("/auth/logout");
@@ -56,7 +46,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, refresh: fetchMe }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, refresh: fetchMe }}>
       {children}
     </AuthContext.Provider>
   );

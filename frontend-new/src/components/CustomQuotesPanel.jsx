@@ -8,7 +8,21 @@ import api from "@/lib/api";
 
 const CURRENCIES = ["USD", "AUD", "NZD", "GBP", "EUR", "CAD", "SGD", "AED", "CNY"];
 
+// How long the client has to pay once they OPEN the link (timer starts then).
+const DURATIONS = [
+  { v: 15, l: "15 minutes" }, { v: 30, l: "30 minutes" }, { v: 60, l: "1 hour" },
+  { v: 180, l: "3 hours" }, { v: 360, l: "6 hours" }, { v: 720, l: "12 hours" },
+  { v: 1440, l: "24 hours" }, { v: 2880, l: "48 hours" },
+];
+const durationLabel = (m) => DURATIONS.find((d) => d.v === m)?.l || `${m} minutes`;
+
+const STATUS_LABELS = {
+  not_opened: "not opened yet",
+  pending: "opened · timer running",
+};
+
 const STATUS_STYLES = {
+  not_opened: "text-sky-700 bg-sky-50 border-sky-200",
   paid: "text-emerald-600 bg-emerald-50 border-emerald-200",
   pending: "text-amber-600 bg-amber-50 border-amber-200",
   expired: "text-muted-foreground bg-secondary border-border",
@@ -57,6 +71,14 @@ async function shareLink(url, text) {
 // Live "mm:ss until expiry" — ticks every second, same component used
 // here (admin list) and on the payer-facing /pay/:token page, so both
 // sides always show the same countdown.
+function formatRemaining(ms) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const sec = total % 60;
+  return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}` : `${m}:${String(sec).padStart(2, "0")}`;
+}
+
 function ExpiryCountdown({ expiresAt, status }) {
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -68,10 +90,10 @@ function ExpiryCountdown({ expiresAt, status }) {
   if (status !== "pending" || !expiresAt) return null;
   const remainingMs = new Date(expiresAt).getTime() - now;
   if (remainingMs <= 0) return <span className="text-xs text-muted-foreground">Expired</span>;
-  const mm = Math.floor(remainingMs / 60000);
-  const ss = Math.floor((remainingMs % 60000) / 1000);
-  return <span className="text-xs font-mono text-muted-foreground">Expires in {mm}:{String(ss).padStart(2, "0")}</span>;
+  return <span className="text-xs font-mono text-muted-foreground">Expires in {formatRemaining(remainingMs)}</span>;
 }
+
+const fmtWhen = (iso) => (iso ? new Date(iso).toLocaleString([], { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "");
 
 export default function CustomQuotesPanel() {
   const [amount, setAmount] = useState("");
@@ -81,6 +103,7 @@ export default function CustomQuotesPanel() {
   const [childName, setChildName] = useState("");
   const [childGrade, setChildGrade] = useState("");
   const [note, setNote] = useState("");
+  const [ttl, setTtl] = useState(15);
   const [busy, setBusy] = useState(false);
   const [quotes, setQuotes] = useState([]);
   const [loadingList, setLoadingList] = useState(true);
@@ -120,8 +143,9 @@ export default function CustomQuotesPanel() {
         child_name: childName || undefined,
         child_grade: childGrade || undefined,
         note: note || undefined,
+        ttl_minutes: ttl,
       });
-      toast.success("Payment link created — expires in 15 minutes");
+      toast.success(`Payment link created — client gets ${durationLabel(ttl)} once they open it`);
       setAmount(""); setCustomerName(""); setCustomerEmail(""); setChildName(""); setChildGrade(""); setNote("");
       loadQuotes();
       setNewLink(data.url);
@@ -140,7 +164,7 @@ export default function CustomQuotesPanel() {
   };
 
   const share = async (url) => {
-    const shared = await shareLink(url, "Here is your secure payment link (valid for 15 minutes):");
+    const shared = await shareLink(url, "Here is your secure payment link. Please complete the payment soon after opening it — the link expires a short time after you open it:");
     if (!shared) copy(url);
   };
 
@@ -195,6 +219,14 @@ export default function CustomQuotesPanel() {
             <Input id="cq-child-grade" required value={childGrade} onChange={(e) => setChildGrade(e.target.value)} className="mt-1.5 rounded-xl h-11 text-base" placeholder="e.g. Grade 8" />
           </div>
         </div>
+        <div className="mt-4 grid sm:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="cq-ttl">Link valid for (starts when the client opens it) *</Label>
+            <select id="cq-ttl" value={ttl} onChange={(e) => setTtl(Number(e.target.value))} className="mt-1.5 w-full h-11 rounded-xl border border-input bg-background px-3 py-2 text-base" data-testid="cq-ttl-select">
+              {DURATIONS.map((d) => <option key={d.v} value={d.v}>{d.l}</option>)}
+            </select>
+          </div>
+        </div>
         <div className="mt-4">
           <Label htmlFor="cq-note">Note (optional — shown to the customer, e.g. plan description)</Label>
           <Input id="cq-note" value={note} onChange={(e) => setNote(e.target.value)} className="mt-1.5 rounded-xl h-11 text-base" placeholder="e.g. Custom 6-month Physics plan" />
@@ -202,7 +234,9 @@ export default function CustomQuotesPanel() {
         <Button onClick={createQuote} disabled={busy} className="mt-6 w-full sm:w-auto h-11 pill-btn bg-primary text-primary-foreground hover:bg-accent hover:text-accent-foreground">
           {busy ? <Loader2 size={14} className="mr-1.5 animate-spin" /> : <Plus size={14} className="mr-1.5" />} Create payment link
         </Button>
-        <p className="mt-2 text-[11px] text-muted-foreground">Links expire automatically 15 minutes after creation.</p>
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          The countdown starts only when the client first opens the link (so opening it yourself to test will start it). A link nobody opens stops working after 7 days.
+        </p>
 
         {newLink && (
           <div className="mt-5 rounded-2xl border border-accent/40 bg-accent/10 p-4" data-testid="new-link-box">
@@ -230,7 +264,7 @@ export default function CustomQuotesPanel() {
       {!loadingList && quotes.length === 0 && <p className="mt-3 text-sm text-muted-foreground">No custom links created yet.</p>}
       <div className="mt-3 space-y-2">
         {quotes.map((q) => {
-          const canRevoke = q.display_status === "pending";
+          const canRevoke = q.display_status === "pending" || q.display_status === "not_opened";
           return (
             <div key={q.token} className="rounded-xl border border-border bg-card/60 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm">
               <div className="min-w-0">
@@ -241,9 +275,15 @@ export default function CustomQuotesPanel() {
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-2">
                   <span className={`inline-block rounded-full border px-2 py-0.5 text-[11px] font-medium ${STATUS_STYLES[q.display_status] || ""}`}>
-                    {q.display_status.replace(/_/g, " ")}
+                    {STATUS_LABELS[q.display_status] || q.display_status.replace(/_/g, " ")}
                   </span>
                   <ExpiryCountdown expiresAt={q.expires_at} status={q.display_status} />
+                </div>
+                <div className="mt-1 text-[11px] text-muted-foreground break-words">
+                  Created {fmtWhen(q.created_at)} · valid {durationLabel(q.ttl_minutes || 15)} after opening
+                  {q.opened_at ? ` · opened ${fmtWhen(q.opened_at)}` : q.display_status === "not_opened" ? " · waiting for client to open" : ""}
+                  {q.expires_at ? ` · ${q.display_status === "expired" ? "expired" : "expires"} ${fmtWhen(q.expires_at)}` : ""}
+                  {q.paid_at ? ` · paid ${fmtWhen(q.paid_at)}` : ""}
                 </div>
               </div>
               <div className="flex items-center gap-1.5 sm:shrink-0">

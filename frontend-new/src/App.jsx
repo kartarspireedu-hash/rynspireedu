@@ -1,15 +1,14 @@
 import "@/App.css";
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { CurrencyProvider } from "@/context/CurrencyContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import TawkChat from "@/components/TawkChat";
 import MetaPixel from "@/components/MetaPixel";
 import GoogleTagManager from "@/components/GoogleTagManager";
-import FloatingWhatsApp from "@/components/FloatingWhatsApp";
+import ChatAssistant from "@/components/ChatAssistant";
 import CookieConsentBanner from "@/components/CookieConsentBanner";
 import ScrollToTop from "@/components/ScrollToTop";
 
@@ -36,7 +35,7 @@ const RefundPolicy = lazy(() => import("@/pages/RefundPolicy"));
 const ChildProtection = lazy(() => import("@/pages/ChildProtection"));
 const Login = lazy(() => import("@/pages/Login"));
 const SetPassword = lazy(() => import("@/pages/SetPassword"));
-const Register = lazy(() => import("@/pages/Register"));
+const Feedback = lazy(() => import("@/pages/Feedback"));
 const StudentDashboard = lazy(() => import("@/pages/StudentDashboard"));
 const TutorDashboard = lazy(() => import("@/pages/TutorDashboard"));
 const AdminDashboard = lazy(() => import("@/pages/AdminDashboard"));
@@ -58,10 +57,9 @@ function App() {
         <CurrencyProvider>
           <AuthProvider>
             <BrowserRouter>
-              <TawkChat />
               <MetaPixel />
               <GoogleTagManager />
-              <FloatingWhatsApp />
+              <ChatAssistant />
               <CookieConsentBanner />
               <ScrollToTop />
               <Suspense fallback={<RouteFallback />}>
@@ -84,13 +82,17 @@ function App() {
                   <Route path="/child-protection" element={<ChildProtection />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/set-password" element={<SetPassword />} />
-                  <Route path="/register" element={<Register />} />
+                  {/* Public sign-up is switched off for now */}
+                  <Route path="/register" element={<Navigate to="/login" replace />} />
+                  <Route path="/feedback" element={<Feedback />} />
 
                   <Route path="/app/student" element={<ProtectedRoute roles={["student", "parent"]}><StudentDashboard /></ProtectedRoute>} />
                   <Route path="/app/student/book" element={<ProtectedRoute roles={["student", "parent"]}><BookSession /></ProtectedRoute>} />
                   <Route path="/app/tutor" element={<ProtectedRoute roles={["tutor"]}><TutorDashboard /></ProtectedRoute>} />
                   <Route path="/app/admin" element={<ProtectedRoute roles={["admin", "owner"]}><AdminDashboard /></ProtectedRoute>} />
                   <Route path="/app/admin/users" element={<ProtectedRoute roles={["admin", "owner"]}><AdminDashboard /></ProtectedRoute>} />
+                  <Route path="/app/admin/live-sheet" element={<ProtectedRoute roles={["admin", "owner"]}><AdminDashboard /></ProtectedRoute>} />
+                  <Route path="/app/admin/feedback" element={<ProtectedRoute roles={["admin", "owner"]}><AdminDashboard /></ProtectedRoute>} />
                   <Route path="/app/admin/payment-links" element={<ProtectedRoute roles={["admin", "owner"]}><AdminDashboard /></ProtectedRoute>} />
                   <Route path="/app/admin/custom-quotes" element={<ProtectedRoute roles={["admin", "owner"]}><AdminCustomQuotes /></ProtectedRoute>} />
                   <Route path="/pay/:token" element={<CustomPay />} />

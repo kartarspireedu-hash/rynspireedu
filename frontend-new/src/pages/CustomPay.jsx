@@ -12,22 +12,27 @@ import api from "@/lib/api";
 import { openRazorpayCheckout, loadRazorpayScript } from "@/lib/razorpay";
 import { validateEmail } from "@/lib/validators";
 
-// Live "mm:ss until expiry" the payer can see too — not just the admin
-// dashboard. Once it hits zero, the pay button disables itself below.
-function ExpiryCountdown({ expiresAt, onExpire }) {
-  const [now, setNow] = useState(Date.now());
+// Live countdown the payer sees. The timer started on the server the moment
+// this page first loaded the link; `serverTime` is used so a wrong clock on
+// the payer's phone can't make it run fast or slow.
+function ExpiryCountdown({ expiresAt, serverTime, onExpire }) {
+  const [skew] = useState(() => (serverTime ? new Date(serverTime).getTime() - Date.now() : 0));
+  const [now, setNow] = useState(() => Date.now() + skew);
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
+    const t = setInterval(() => setNow(Date.now() + skew), 1000);
     return () => clearInterval(t);
-  }, []);
+  }, [skew]);
   const remainingMs = new Date(expiresAt).getTime() - now;
-  useEffect(() => { if (remainingMs <= 0) onExpire?.(); }, [remainingMs <= 0]);
+  useEffect(() => { if (remainingMs <= 0) onExpire?.(); }, [remainingMs <= 0]); // eslint-disable-line react-hooks/exhaustive-deps
   if (remainingMs <= 0) return null;
-  const mm = Math.floor(remainingMs / 60000);
-  const ss = Math.floor((remainingMs % 60000) / 1000);
+  const total = Math.floor(remainingMs / 1000);
+  const h = Math.floor(total / 3600);
+  const mm = Math.floor((total % 3600) / 60);
+  const ss = total % 60;
+  const text = h > 0 ? `${h}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}` : `${mm}:${String(ss).padStart(2, "0")}`;
   return (
     <div className="flex items-center gap-1.5 text-xs text-muted-foreground justify-center">
-      <Clock size={12} /> This link expires in <span className="font-mono font-medium text-foreground">{mm}:{String(ss).padStart(2, "0")}</span>
+      <Clock size={12} /> Please pay within <span className="font-mono font-medium text-foreground">{text}</span>
     </div>
   );
 }
@@ -142,7 +147,7 @@ export default function CustomPay() {
           <div className="mt-8 rounded-3xl border border-border bg-card p-8 text-center" data-testid="custom-pay-expired">
             <Clock className="mx-auto text-muted-foreground" size={28} />
             <h1 className="mt-3 font-display text-xl">This link has expired</h1>
-            <p className="mt-2 text-sm text-muted-foreground">For your security, payment links are only valid for 15 minutes. Please ask for a new one.</p>
+            <p className="mt-2 text-sm text-muted-foreground">For your security, payment links stop working a set time after they're opened. Please ask us for a new one.</p>
             <Button asChild className="mt-5 pill-btn bg-primary text-primary-foreground">
               <Link to="/contact">Contact us</Link>
             </Button>
@@ -164,7 +169,7 @@ export default function CustomPay() {
 
             {quote.expires_at && (
               <div className="mt-3">
-                <ExpiryCountdown expiresAt={quote.expires_at} onExpire={() => setExpiredNow(true)} />
+                <ExpiryCountdown expiresAt={quote.expires_at} serverTime={quote.server_time} onExpire={() => setExpiredNow(true)} />
               </div>
             )}
 

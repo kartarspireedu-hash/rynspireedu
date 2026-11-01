@@ -12,6 +12,7 @@ import calendar
 import secrets
 import hmac
 import hashlib
+import json
 import logging
 import smtplib
 import asyncio
@@ -129,9 +130,9 @@ _rate_buckets: dict[str, list[float]] = {}
 RATE_LIMITED_PATHS = {
     "/api/demos": (5, 300),          # 5 requests / 5 minutes per IP
     "/api/contact": (5, 300),
-    "/api/tawk-lead": (10, 300),
+    "/api/feedback": (5, 300),
     "/api/payments/create-order": (10, 300),
-    "/api/auth/register": (5, 300),
+    "/api/auth/login": (20, 300),
 }
 
 @app.middleware("http")
@@ -224,14 +225,6 @@ def require_role(*allowed: str):
 # ------------------------------------------------------------------
 # Schemas
 # ------------------------------------------------------------------
-class RegisterInput(BaseModel):
-    name: str = Field(min_length=2, max_length=80)
-    email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
-    role: Role = "student"
-    grade: Optional[str] = None
-    country: Optional[str] = "Australia"
-
 class LoginInput(BaseModel):
     email: EmailStr
     password: str
@@ -321,6 +314,7 @@ class CustomQuoteIn(BaseModel):
     child_name: str = Field(min_length=1)
     child_grade: str = Field(min_length=1)
     note: Optional[str] = None
+    ttl_minutes: int = Field(default=15, ge=5, le=2880, description="How long the link stays valid AFTER the client first opens it")
 
 class CustomQuoteVerifyIn(BaseModel):
     razorpay_order_id: str
@@ -438,20 +432,9 @@ async def _clear_failed(identifier: str):
 # ------------------------------------------------------------------
 # Auth endpoints
 # ------------------------------------------------------------------
-@api_router.post("/auth/register", response_model=UserOut)
-async def register(payload: RegisterInput, response: Response):
-    email = payload.email.lower().strip()
-    if await db.users.find_one({"email": email}):
-        raise HTTPException(status_code=400, detail="Email already registered")
-    uid = str(uuid.uuid4())
-    doc = {"id": uid, "name": payload.name.strip(), "email": email,
-           "password_hash": hash_password(payload.password), "role": payload.role,
-           "grade": payload.grade, "country": payload.country, "avatar": None,
-           "created_at": datetime.now(timezone.utc).isoformat()}
-    await db.users.insert_one(doc)
-    _set_auth_cookies(response, create_access_token(uid, email, payload.role), create_refresh_token(uid))
-    return UserOut(**{k: v for k, v in doc.items() if k != "password_hash"})
-
+# Public sign-up is intentionally disabled for now: accounts are created by the
+# owner (ADMIN_EMAIL/ADMIN_PASSWORD seed, or directly in the database).
+# There is also no password-reset flow yet.
 @api_router.post("/auth/login", response_model=UserOut)
 async def login(payload: LoginInput, request: Request, response: Response):
     email = payload.email.lower().strip()
@@ -542,25 +525,6 @@ def _send_to_google_sheet_sync(doc: dict, sheet_name: str = "Demo Bookings") -> 
         requests.post(url, json={"sheet": sheet_name, **clean_doc}, timeout=10)
     except Exception:
         logger.exception("Failed to sync data to Google Sheet")
-
-class TawkLeadIn(BaseModel):
-    name: str | None = Field(default=None, max_length=100)
-    email: str | None = Field(default=None, max_length=120)
-    phone: str | None = Field(default=None, max_length=30)
-    message: str | None = Field(default=None, max_length=1000)
-
-@api_router.post("/tawk-lead")
-async def tawk_lead(payload: TawkLeadIn, background: BackgroundTasks):
-    doc = {
-        "id": str(uuid.uuid4()),
-        "name": payload.name or "",
-        "email": payload.email or "",
-        "phone": payload.phone or "",
-        "message": payload.message or "",
-        "created_at": datetime.now(timezone.utc).isoformat(),
-    }
-    background.add_task(_send_to_google_sheet_sync, doc, "Tawk Enquiries")
-    return {"ok": True}
 
 # ------------------------------------------------------------------
 # Demo bookings
@@ -858,24 +822,34 @@ async def verify_payment(payload: VerifyPaymentIn, background: BackgroundTasks):
 # integration as the regular checkout flow above — no separate
 # Razorpay product involved.
 # ------------------------------------------------------------------
-CUSTOM_QUOTE_TTL_MINUTES = 15
+# How long a link may sit UNOPENED before it dies. The payment window itself
+# (ttl_minutes, chosen per link) only starts when the client first opens it.
+CUSTOM_QUOTE_UNOPENED_DAYS = 7
+
+def _parse_dt(v: str) -> datetime:
+    dt = datetime.fromisoformat(v)
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
 
 def _quote_public_status(q: dict) -> str:
-    """The status a payer/admin should see — folds in revoked/expired,
-    which aren't stored as the literal `status` field (that field only
-    tracks the payment lifecycle: pending/paid/signature_mismatch).
-    Only applies to quotes still 'pending' — a quote that already
-    resolved to paid (or any other terminal state) keeps that result
-    even if revoked afterwards; revoking only blocks *new* payment
-    attempts, it never rewrites a completed outcome."""
+    """Status a payer/admin should see. `status` in the DB only tracks the
+    payment lifecycle (pending/paid/signature_mismatch...); this folds in
+    revoked / expired / not_opened.
+      not_opened -> valid link, client hasn't opened it yet (timer not started)
+      pending    -> opened, timer running
+    Terminal outcomes (paid etc.) are never rewritten by revoke/expiry."""
     if q["status"] != "pending":
         return q["status"]
     if q.get("revoked"):
         return "revoked"
+    now = datetime.now(timezone.utc)
     expires_at = q.get("expires_at")
-    if expires_at and datetime.now(timezone.utc) > datetime.fromisoformat(expires_at):
+    if expires_at:
+        return "expired" if now > _parse_dt(expires_at) else "pending"
+    # never opened
+    link_exp = q.get("link_expires_at")
+    if link_exp and now > _parse_dt(link_exp):
         return "expired"
-    return "pending"
+    return "not_opened"
 
 @api_router.post("/admin/custom-quotes")
 async def create_custom_quote(payload: CustomQuoteIn, background: BackgroundTasks, admin=Depends(require_role("admin", "owner"))):
@@ -890,7 +864,10 @@ async def create_custom_quote(payload: CustomQuoteIn, background: BackgroundTask
         "child_name": payload.child_name, "child_grade": payload.child_grade,
         "note": payload.note, "status": "pending", "revoked": False,
         "created_by": admin.get("email"), "created_at": now.isoformat(),
-        "expires_at": (now + timedelta(minutes=CUSTOM_QUOTE_TTL_MINUTES)).isoformat(),
+        "ttl_minutes": payload.ttl_minutes,
+        "opened_at": None,
+        "expires_at": None,  # set the moment the client first opens the link
+        "link_expires_at": (now + timedelta(days=CUSTOM_QUOTE_UNOPENED_DAYS)).isoformat(),
     }
     await db.custom_quotes.insert_one(doc)
     background.add_task(_send_to_google_sheet_sync, {
@@ -898,11 +875,12 @@ async def create_custom_quote(payload: CustomQuoteIn, background: BackgroundTask
         "customer_name": payload.customer_name, "customer_email": payload.customer_email,
         "child_name": payload.child_name, "child_grade": payload.child_grade,
         "note": payload.note, "status": "link created", "created_by": admin.get("email"),
-        "created_at": now.isoformat(),
+        "created_at": now.isoformat(), "valid_for_minutes": payload.ttl_minutes,
     }, "Custom Payments")
     frontend_url = os.environ.get("FRONTEND_URL", "https://rynspireedu.com")
     return {"token": token, "url": f"{frontend_url}/pay/{token}", "amount": payload.amount,
-            "currency": doc["currency"], "expires_at": doc["expires_at"]}
+            "currency": doc["currency"], "ttl_minutes": payload.ttl_minutes,
+            "link_expires_at": doc["link_expires_at"]}
 
 @api_router.get("/admin/custom-quotes")
 async def list_custom_quotes(admin=Depends(require_role("admin", "owner"))):
@@ -928,15 +906,35 @@ async def revoke_custom_quote(token: str, admin=Depends(require_role("admin", "o
     return {"ok": True}
 
 @api_router.get("/custom-quotes/{token}")
-async def get_custom_quote(token: str):
+async def get_custom_quote(token: str, request: Request, background: BackgroundTasks):
     q = await db.custom_quotes.find_one({"token": token}, {"_id": 0})
     if not q:
         raise HTTPException(status_code=404, detail="This payment link is invalid.")
+    # First real open (this endpoint is only called by the page's own JavaScript,
+    # so link-preview bots that merely fetch the HTML don't trigger it): start the
+    # countdown. The filter makes it atomic — two simultaneous opens can't restart it.
+    if _quote_public_status(q) == "not_opened":
+        now = datetime.now(timezone.utc)
+        ttl = int(q.get("ttl_minutes") or 15)
+        exp = now + timedelta(minutes=ttl)
+        client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "").split(",")[0].strip()
+        res = await db.custom_quotes.update_one(
+            {"token": token, "status": "pending", "revoked": {"$ne": True}, "opened_at": None, "expires_at": None},
+            {"$set": {"opened_at": now.isoformat(), "expires_at": exp.isoformat(),
+                      "opened_ip": client_ip, "opened_user_agent": request.headers.get("user-agent", "")}},
+        )
+        if res.modified_count:
+            background.add_task(_send_to_google_sheet_sync, {
+                "token": token, "status": "link opened",
+                "opened_at": now.isoformat(), "expires_at": exp.isoformat(),
+            }, "Custom Payments")
+        q = await db.custom_quotes.find_one({"token": token}, {"_id": 0})
     return {
         "amount": q["amount"], "currency": q["currency"],
         "customer_name": q.get("customer_name"), "note": q.get("note"),
         "child_name": q.get("child_name"), "child_grade": q.get("child_grade"),
         "status": _quote_public_status(q), "expires_at": q.get("expires_at"),
+        "ttl_minutes": q.get("ttl_minutes"), "server_time": datetime.now(timezone.utc).isoformat(),
     }
 
 @api_router.post("/custom-quotes/{token}/create-order")
@@ -951,6 +949,8 @@ async def create_custom_quote_order(token: str, request: Request):
         raise HTTPException(status_code=400, detail="This payment link has been disabled by the merchant.")
     if status == "expired":
         raise HTTPException(status_code=400, detail="This payment link has expired. Please ask for a new one.")
+    if status == "not_opened":
+        raise HTTPException(status_code=400, detail="Please reload the payment link page and try again.")
     rc = _razorpay_client()
     try:
         order = rc.order.create({
@@ -1105,6 +1105,145 @@ async def admin_stats(_: dict = Depends(require_role("admin", "owner"))):
             "demos": {"total": demos, "today": demos_today},
             "payments": {"paid": paid}}
 
+
+# ------------------------------------------------------------------
+# Live Google Sheet viewer (admin "Live sheet" tab) — READ-ONLY.
+# Reads the owner's sheet through the Sheets API so every column the team
+# fills in by hand (tutor, demo happened, status, ...) shows up on the
+# dashboard within ~30s. Credentials: GOOGLE_SERVICE_ACCOUNT_JSON env var,
+# or (on Cloud Run) the service's own runtime account via ADC — in both
+# cases the sheet must be shared with that account's email as Viewer.
+# ------------------------------------------------------------------
+DEFAULT_SHEET_ID = "1bmhcaxOLiRzbn05MNBYbXNJuuIYtOtNdHlEfadRPI2c"
+SHEETS_SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
+_sheets_creds = None
+_sheet_cache: dict = {}
+SHEET_CACHE_SECONDS = 20
+
+def _sheets_token_sync() -> str:
+    global _sheets_creds
+    import google.auth
+    from google.auth.transport.requests import Request as GRequest
+    from google.oauth2 import service_account
+    if _sheets_creds is None:
+        raw = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON", "").strip()
+        if raw:
+            _sheets_creds = service_account.Credentials.from_service_account_info(json.loads(raw), scopes=SHEETS_SCOPES)
+        else:
+            _sheets_creds, _ = google.auth.default(scopes=SHEETS_SCOPES)
+    if not _sheets_creds.valid:
+        _sheets_creds.refresh(GRequest())
+    return _sheets_creds.token
+
+def _sheets_get_sync(path: str, params: dict | None = None) -> dict:
+    sheet_id = os.environ.get("GOOGLE_SHEET_ID", DEFAULT_SHEET_ID)
+    r = requests.get(f"https://sheets.googleapis.com/v4/spreadsheets/{sheet_id}{path}",
+                     headers={"Authorization": f"Bearer {_sheets_token_sync()}"},
+                     params=params or {}, timeout=15)
+    if r.status_code == 403:
+        raise PermissionError("forbidden")
+    if r.status_code == 404:
+        raise FileNotFoundError("not found")
+    r.raise_for_status()
+    return r.json()
+
+def _read_sheet_sync(tab: Optional[str]) -> dict:
+    meta = _sheets_get_sync("", {"fields": "sheets.properties(title,sheetId)"})
+    tabs = [s_["properties"]["title"] for s_ in meta.get("sheets", [])]
+    if not tabs:
+        return {"tabs": [], "tab": None, "headers": [], "rows": []}
+    chosen = tab if tab in tabs else ("Demo Bookings" if "Demo Bookings" in tabs else tabs[0])
+    safe = chosen.replace("'", "''")
+    data = _sheets_get_sync(f"/values/'{safe}'", {"majorDimension": "ROWS", "valueRenderOption": "FORMATTED_VALUE"})
+    values = data.get("values", [])
+    headers = [str(h).strip() for h in (values[0] if values else [])]
+    rows = []
+    for idx, raw in enumerate(values[1:], start=2):
+        if not any(str(c).strip() for c in raw):
+            continue
+        row = {"_row": idx}
+        for ci, h in enumerate(headers):
+            row[h or f"Column {ci + 1}"] = raw[ci] if ci < len(raw) else ""
+        rows.append(row)
+    return {"tabs": tabs, "tab": chosen, "headers": [h or f"Column {i + 1}" for i, h in enumerate(headers)], "rows": rows}
+
+@api_router.get("/admin/sheet")
+async def admin_live_sheet(tab: Optional[str] = None, refresh: bool = False,
+                           _: dict = Depends(require_role("admin", "owner", "coordinator"))):
+    key = tab or ""
+    cached = _sheet_cache.get(key)
+    now = asyncio.get_event_loop().time()
+    if cached and not refresh and now - cached["t"] < SHEET_CACHE_SECONDS:
+        return cached["data"]
+    try:
+        data = await asyncio.to_thread(_read_sheet_sync, tab)
+    except PermissionError:
+        raise HTTPException(status_code=503, detail="The server's Google account can't open your sheet yet. Share the sheet (Viewer) with the service account email, then refresh.")
+    except FileNotFoundError:
+        raise HTTPException(status_code=503, detail="Sheet not found — check GOOGLE_SHEET_ID.")
+    except Exception as e:
+        if type(e).__name__ == "DefaultCredentialsError":
+            raise HTTPException(status_code=503, detail="No Google credentials are configured on the server yet. Add GOOGLE_SERVICE_ACCOUNT_JSON (or run Cloud Run with a service account that has the sheet shared with it).")
+        logger.exception("Live sheet read failed")
+        raise HTTPException(status_code=503, detail=f"Could not read the Google Sheet right now ({type(e).__name__}). Make sure the Google Sheets API is enabled for the project and the sheet is shared with the service account.")
+    data["fetched_at"] = datetime.now(timezone.utc).isoformat()
+    _sheet_cache[key] = {"t": now, "data": data}
+    return data
+
+# ------------------------------------------------------------------
+# Feedback form (public) -> MongoDB + "Feedback" tab in the Google Sheet
+# ------------------------------------------------------------------
+class FeedbackIn(BaseModel):
+    name: str = Field(min_length=2, max_length=80)
+    email: Optional[EmailStr] = None
+    who: Literal["parent", "student"] = "parent"
+    student_name: Optional[str] = Field(default="", max_length=80)
+    tutor_name: Optional[str] = Field(default="", max_length=80)
+    subject: Optional[str] = Field(default="", max_length=60)
+    rating: int = Field(ge=1, le=5)
+    tutor_rating: Optional[int] = Field(default=None, ge=1, le=5)
+    liked: Optional[str] = Field(default="", max_length=1500)
+    improve: Optional[str] = Field(default="", max_length=1500)
+    would_continue: Literal["yes", "maybe", "no"] = "yes"
+    allow_testimonial: bool = False
+
+@api_router.post("/feedback")
+async def submit_feedback(payload: FeedbackIn, background: BackgroundTasks):
+    doc = {
+        "id": str(uuid.uuid4()),
+        "name": payload.name.strip(),
+        "email": (payload.email or "").lower().strip() if payload.email else "",
+        "who": payload.who,
+        "student_name": (payload.student_name or "").strip(),
+        "tutor_name": (payload.tutor_name or "").strip(),
+        "subject": (payload.subject or "").strip(),
+        "rating": payload.rating,
+        "tutor_rating": payload.tutor_rating or "",
+        "liked": (payload.liked or "").strip(),
+        "improve": (payload.improve or "").strip(),
+        "would_continue": payload.would_continue,
+        "allow_testimonial": "yes" if payload.allow_testimonial else "no",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.feedback.insert_one(dict(doc))
+    background.add_task(_send_to_google_sheet_sync, doc, "Feedback")
+    care = os.environ.get("CARE_EMAIL", "care@rynspireedu.com")
+    html = f"""<div style="font-family:Outfit,Arial,sans-serif;max-width:560px;color:#1a1235;">
+      <h2 style="color:#3b1a70;">New feedback · {doc['rating']}/5</h2>
+      <p><strong>{doc['name']}</strong> ({doc['who']}){f" — student: {doc['student_name']}" if doc['student_name'] else ""}<br/>
+      {f"Tutor: {doc['tutor_name']}<br/>" if doc['tutor_name'] else ""}{f"Subject: {doc['subject']}<br/>" if doc['subject'] else ""}
+      Would continue: {doc['would_continue']}</p>
+      {f"<p><strong>What went well:</strong><br/>{doc['liked']}</p>" if doc['liked'] else ""}
+      {f"<p><strong>What to improve:</strong><br/>{doc['improve']}</p>" if doc['improve'] else ""}
+    </div>"""
+    background.add_task(_send_email_sync, [care], f"[Feedback] {doc['rating']}/5 from {doc['name']}", html, doc["email"] or None)
+    return {"ok": True}
+
+@api_router.get("/admin/feedback")
+async def list_feedback(_: dict = Depends(require_role("admin", "owner", "coordinator"))):
+    rows = await db.feedback.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return rows
+
 # ------------------------------------------------------------------
 # Startup
 # ------------------------------------------------------------------
@@ -1135,6 +1274,7 @@ async def on_startup():
     await db.demo_bookings.create_index("demo_date")
     await db.payment_orders.create_index("order_id", unique=True)
     await db.login_attempts.create_index("identifier")
+    await db.feedback.create_index("created_at")
     await _seed_admin()
 
 @app.on_event("shutdown")

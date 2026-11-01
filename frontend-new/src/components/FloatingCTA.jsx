@@ -21,7 +21,7 @@ export default function FloatingCTA() {
   }, [dismissed]);
 
   // Hide on booking + auth pages, and for visitors who've already purchased
-  if (hasPurchased || location.pathname.startsWith("/book-demo") || location.pathname === "/login" || location.pathname === "/register") return null;
+  if (hasPurchased || location.pathname.startsWith("/book-demo") || location.pathname === "/login") return null;
 
   return (
     <AnimatePresence>

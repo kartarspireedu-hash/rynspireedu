@@ -5,7 +5,7 @@ import useHasPurchased from "@/lib/useHasPurchased";
 export default function MobileStickyBar() {
   const location = useLocation();
   const hasPurchased = useHasPurchased();
-  if (hasPurchased || location.pathname.startsWith("/book-demo") || location.pathname === "/login" || location.pathname === "/register" || location.pathname.startsWith("/app/") || location.pathname.startsWith("/session/")) return null;
+  if (hasPurchased || location.pathname.startsWith("/book-demo") || location.pathname === "/login" || location.pathname.startsWith("/app/") || location.pathname.startsWith("/session/")) return null;
 
   return (
     <div className="mobile-sticky lg:hidden px-4 py-3" data-testid="mobile-sticky-bar">
