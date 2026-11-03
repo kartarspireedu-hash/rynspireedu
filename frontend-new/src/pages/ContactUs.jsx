@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Mail, Send, Loader2, CheckCircle2, ArrowRight } from "lucide-react";
 import api from "@/lib/api";
 import { validateEmail, validatePhoneForCountry } from "@/lib/validators";
-import { isoToFlag, DIAL_CODES } from "@/lib/dialCodes";
+import { DIAL_CODES } from "@/lib/dialCodes";
+import DialCodeSelect from "@/components/DialCodeSelect";
 
 const REASONS = [
   "Parent / Student Enquiry",
@@ -151,14 +152,7 @@ export default function ContactUs() {
               <div>
                 <Label htmlFor="c-phone">Phone (Optional)</Label>
                 <div className="mt-1.5 flex gap-2">
-                  <Select value={dialIso} onValueChange={setDialIso}>
-                    <SelectTrigger className="rounded-xl w-[6.5rem] shrink-0" data-testid="contact-dial-code"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {DIAL_CODES.map((d) => (
-                        <SelectItem key={d.iso} value={d.iso}>{isoToFlag(d.iso)} {d.dial}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <DialCodeSelect value={dialIso} onChange={setDialIso} testId="contact-dial-code" />
                   <Input id="c-phone" inputMode="tel" placeholder="400 000 000" value={form.phone} onChange={(e) => setField("phone", e.target.value)} className="rounded-xl flex-1" data-testid="contact-phone" />
                 </div>
                 {fieldErrors.phone && <p className="mt-1 text-xs text-destructive">{fieldErrors.phone}</p>}

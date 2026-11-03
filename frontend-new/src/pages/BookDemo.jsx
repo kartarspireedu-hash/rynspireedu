@@ -17,16 +17,15 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ArrowLeft, ArrowRight, CalendarIcon, CheckCircle2, Sparkles, Clock, Mail } from "lucide-react";
 import api from "@/lib/api";
 import { validateEmail, validatePhoneForCountry } from "@/lib/validators";
-import { isoToFlag, DIAL_CODES } from "@/lib/dialCodes";
+import { DIAL_CODES } from "@/lib/dialCodes";
+import DialCodeSelect from "@/components/DialCodeSelect";
+import { WorldCountrySelect, WorldTimezoneSelect } from "@/components/WorldSelects";
+import { countryByIso, zoneLabel, ALL_TIMEZONES } from "@/lib/world";
 import { ymd, todayInTz, maxBookableDate, nowInTz, isClosedDay, isBookableDate, nextOpenDays, DEFAULT_TZ_BY_COUNTRY } from "@/lib/demoConfig";
 
 // We currently serve Australia, New Zealand, the United States & Canada.
-// Other countries are shown for context but disabled (visual only, per request).
+// Anyone else picks "Other country" and chooses theirs from the full world list.
 const COUNTRIES_ENABLED = ["Australia", "New Zealand", "United States", "Canada"];
-const COUNTRIES_DISABLED = [
-  "United Kingdom", "Singapore", "India",
-  "United Arab Emirates", "Ireland", "Germany",
-];
 
 const CITIES_BY_COUNTRY = {
   "Australia": ["Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide", "Canberra", "Gold Coast", "Hobart", "Darwin", "Other"],
@@ -52,14 +51,13 @@ const TIME_SLOTS = [
 ];
 
 // Australia, New Zealand, the US & Canada are the selectable timezones.
-// Other zones are visible for reference only and cannot be selected.
+// Every other timezone in the world is available under "Other timezone…".
 const TZ_PRIMARY = [
   "Australia/Sydney", "Australia/Melbourne", "Australia/Perth", "Australia/Brisbane", "Australia/Adelaide",
   "Pacific/Auckland",
   "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
   "America/Toronto", "America/Vancouver",
 ];
-const TZ_OTHER = ["Asia/Kolkata", "Asia/Singapore", "Asia/Dubai", "Europe/London", "Europe/Dublin", "Europe/Berlin"];
 
 // Human-friendly labels, Country first then City — the raw IANA name (e.g.
 // "America/Toronto") doesn't distinguish US from Canada, and "Pacific/Auckland"
@@ -98,8 +96,9 @@ function tzOffsetCode(tz) {
   }
 }
 
-const tzLabel = (t) => {
-  const base = TZ_LABELS[t] || t.replace("_", " ");
+const tzLabel = (t, iso) => {
+  if (!TZ_LABELS[t]) return zoneLabel(t, iso);
+  const base = TZ_LABELS[t];
   const offset = tzOffsetCode(t);
   return offset ? `${base} (${offset})` : base;
 };
@@ -137,11 +136,13 @@ export default function BookDemo() {
 
   const [form, setForm] = useState({
     parent_name: "", student_name: "", email: "", phone: "",
-    country: "Australia", city: "Sydney", city_other: "",
+    country: "Australia", country_other: "", city: "Sydney", city_other: "",
     student_class: "Grade 8", class_other: "", subject: "Mathematics", subject_other: "",
     additional_notes: "",
   });
   const [dialIso, setDialIso] = useState("AU");
+  const [otherIso, setOtherIso] = useState("");     // country picked under "Other country"
+  const [tzOtherOpen, setTzOtherOpen] = useState(false); // show the all-timezones list
   const dialCode = DIAL_CODES.find((d) => d.iso === dialIso)?.dial || "+61";
   const [agreed, setAgreed] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -227,7 +228,27 @@ export default function BookDemo() {
     });
   };
 
-  const displayCountry = form.country;
+  // "Other country": pick from the full world list. This also sets the phone
+  // code and that country's main timezone, so the schedule is in THEIR time.
+  const pickOtherCountry = (iso) => {
+    const c = countryByIso(iso);
+    if (!c) return;
+    setOtherIso(iso);
+    setDialIso(iso);
+    setForm((f) => ({ ...f, country: "Other", country_other: c.name, city: "Other" }));
+    changeTz(c.zones[0]);
+    setTzOtherOpen(true);
+  };
+
+  // Timezone dropdown: our core zones, plus "Other timezone…" for the whole world.
+  const tzIsCore = TZ_PRIMARY.includes(tz);
+  const showWorldTz = tzOtherOpen || !tzIsCore;
+  const worldTzKey = (() => {
+    const own = otherIso && countryByIso(otherIso)?.zones.includes(tz) ? `${otherIso}|${tz}` : "";
+    return own || ALL_TIMEZONES.find((t) => t.zone === tz)?.key || "";
+  })();
+
+  const displayCountry = form.country === "Other" && form.country_other ? form.country_other : form.country;
   const displayCity = form.city === "Other" && form.city_other ? form.city_other : form.city;
   const displayClass = form.student_class === "Other" && form.class_other ? form.class_other : form.student_class;
   const displaySubject = form.subject === "Other" && form.subject_other ? form.subject_other : form.subject;
@@ -240,6 +261,7 @@ export default function BookDemo() {
     if (emailErr) errs.email = emailErr;
     const phoneErr = validatePhoneForCountry(dialCode, form.phone);
     if (phoneErr) errs.phone = phoneErr;
+    if (form.country === "Other" && !form.country_other.trim()) errs.country_other = "Please choose your country.";
     if (form.city === "Other" && !form.city_other.trim()) errs.city_other = "Please specify your city.";
     if (form.subject === "Other" && !form.subject_other.trim()) errs.subject_other = "Please specify the subject.";
     if (form.student_class === "Other" && !form.class_other.trim()) errs.class_other = "Please specify the class/grade.";
@@ -249,6 +271,7 @@ export default function BookDemo() {
 
   const detailsValid = form.parent_name.trim().length >= 2 && form.student_name.trim().length >= 2
     && !validateEmail(form.email) && !validatePhoneForCountry(dialCode, form.phone)
+    && (form.country !== "Other" || form.country_other.trim())
     && (form.city !== "Other" || form.city_other.trim())
     && (form.subject !== "Other" || form.subject_other.trim())
     && (form.student_class !== "Other" || form.class_other.trim());
@@ -371,8 +394,8 @@ export default function BookDemo() {
                   <div className="sm:col-span-2">
                     <Label className="text-xs">Your Timezone</Label>
                     <p className="mt-0.5 text-[11px] text-muted-foreground">Dates and times are in your home timezone. We're closed on Sundays there.</p>
-                    <Select value={tz} onValueChange={changeTz}>
-                      <SelectTrigger className="mt-1.5 rounded-xl" data-testid="demo-tz-select"><SelectValue /></SelectTrigger>
+                    <Select value={showWorldTz ? "__other__" : tz} onValueChange={(v) => { if (v === "__other__") setTzOtherOpen(true); else { setTzOtherOpen(false); changeTz(v); } }}>
+                      <SelectTrigger className="mt-1.5 rounded-xl" data-testid="demo-tz-select"><SelectValue>{showWorldTz ? "🌍 Other timezone…" : tzLabel(tz)}</SelectValue></SelectTrigger>
                       <SelectContent>
                         <SelectGroup>
                           <SelectLabel className="text-primary">Australia, NZ, US &amp; Canada</SelectLabel>
@@ -381,14 +404,12 @@ export default function BookDemo() {
                           ))}
                         </SelectGroup>
                         <SelectSeparator />
-                        <SelectGroup>
-                          <SelectLabel className="text-muted-foreground">Other timezones (view only)</SelectLabel>
-                          {TZ_OTHER.map((t) => (
-                            <SelectItem key={t} value={t} disabled className="text-muted-foreground opacity-50">{tzLabel(t)}</SelectItem>
-                          ))}
-                        </SelectGroup>
+                        <SelectItem value="__other__">🌍 Other timezone… (all countries)</SelectItem>
                       </SelectContent>
                     </Select>
+                    {showWorldTz && (
+                      <WorldTimezoneSelect value={worldTzKey} onChange={(key) => changeTz(key.split("|")[1])} testId="demo-tz-world" />
+                    )}
                   </div>
                 </div>
 
@@ -422,14 +443,7 @@ export default function BookDemo() {
                   <div>
                     <Label htmlFor="phone">Phone Number *</Label>
                     <div className="mt-1.5 flex gap-2">
-                      <Select value={dialIso} onValueChange={setDialIso}>
-                        <SelectTrigger className="rounded-xl w-[6.5rem] shrink-0" data-testid="demo-dial-code"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {DIAL_CODES.map((d) => (
-                            <SelectItem key={d.iso} value={d.iso}>{isoToFlag(d.iso)} {d.dial}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <DialCodeSelect value={dialIso} onChange={setDialIso} testId="demo-dial-code" />
                       <Input id="phone" required inputMode="tel" placeholder="400 000 000" value={form.phone} onChange={(e) => setField("phone", e.target.value)} className="rounded-xl flex-1" data-testid="demo-phone" />
                     </div>
                     {fieldErrors.phone && <p className="mt-1 text-xs text-destructive">{fieldErrors.phone}</p>}
@@ -441,20 +455,21 @@ export default function BookDemo() {
                   </div>
                   <div>
                     <Label>Country *</Label>
-                    <Select value={form.country} onValueChange={(v) => setField("country", v)}>
+                    <Select value={form.country} onValueChange={(v) => { if (v === "Other") { setField("country", "Other"); setField("country_other", ""); setOtherIso(""); setTzOtherOpen(true); } else { setOtherIso(""); setForm((f) => ({ ...f, country_other: "" })); setDialIso(DIAL_CODES.find((d) => d.name === v)?.iso || dialIso); setTzOtherOpen(false); setField("country", v); } }}>
                       <SelectTrigger className="mt-1.5 rounded-xl" data-testid="demo-country"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectGroup>
                           {COUNTRIES_ENABLED.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                         </SelectGroup>
                         <SelectSeparator />
-                        <SelectGroup>
-                          <SelectLabel className="text-muted-foreground">Coming soon</SelectLabel>
-                          {COUNTRIES_DISABLED.map((c) => <SelectItem key={c} value={c} disabled className="text-muted-foreground opacity-50">{c}</SelectItem>)}
-                        </SelectGroup>
+                        <SelectItem value="Other">🌍 Other country…</SelectItem>
                       </SelectContent>
                     </Select>
-                    <p className="mt-1.5 text-[11px] text-muted-foreground">We currently only tutor students in Australia &amp; New Zealand.</p>
+                    {form.country === "Other" && (
+                      <WorldCountrySelect value={otherIso} onChange={pickOtherCountry} testId="demo-country-other" />
+                    )}
+                    {fieldErrors.country_other && <p className="mt-1 text-xs text-destructive">{fieldErrors.country_other}</p>}
+                    <p className="mt-1.5 text-[11px] text-muted-foreground">Not in the list? Choose “Other country” — we welcome students from anywhere.</p>
                   </div>
                   <div>
                     <Label>City *</Label>

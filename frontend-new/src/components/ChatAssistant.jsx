@@ -4,6 +4,7 @@ import { X, Send, ArrowLeft, Loader2 } from "lucide-react";
 import api from "@/lib/api";
 import { validateEmail, validatePhoneForCountry } from "@/lib/validators";
 import { DIAL_CODES } from "@/lib/dialCodes";
+import { COUNTRIES_WORLD, isoToFlag, cityOfZone, utcOffset } from "@/lib/world";
 import {
   COUNTRIES, CITIES_BY_COUNTRY, CLASSES, SUBJECTS, TIME_SLOTS,
   tzForLocation, nextOpenDays, isBookableDate, isClosedDay, ymd, slotsTooSoon,
@@ -23,10 +24,13 @@ const WaGlyph = ({ size = 30 }) => (
   </svg>
 );
 
-// Same questions, same order of thinking as the Book-a-Demo form, asked one at a time.
-// Country comes first because it decides the timezone (and so the dates/times and
-// the no-Sunday rule are in the family's own country).
-const FLOW = ["start", "country", "city", "date", "time", "parent_name", "student_name", "email", "phone", "student_class", "subject", "notes", "confirm"];
+
+const Chip = ({ onClick, children, primary }) => (
+  <button type="button" onClick={onClick}
+    className={`rounded-full border px-3.5 py-2 text-sm text-left transition-colors ${primary ? "bg-primary text-primary-foreground border-primary hover:bg-accent hover:text-accent-foreground" : "border-primary/40 text-primary bg-background hover:bg-primary/10"}`}>
+    {children}
+  </button>
+);
 
 export default function ChatAssistant() {
   const location = useLocation();
@@ -46,8 +50,15 @@ export default function ChatAssistant() {
   const inputRef = useRef(null);
   const timers = useRef([]);
 
-  const tz = tzForLocation(a.country, a.city === "Other" ? undefined : a.city);
-  const dialCode = DIAL_CODES.find((d) => d.iso === DIAL_ISO[a.country])?.dial || "+61";
+  const tz = a.tz || tzForLocation(a.country, a.city === "Other" ? undefined : a.city);
+  const dialCode = DIAL_CODES.find((d) => d.iso === (a.iso || DIAL_ISO[a.country]))?.dial || "+61";
+  const countryName = a.country === "Other" ? a.country_other : a.country;
+  const tzName = cityOfZone(tz);
+  const matches = (() => {
+    const q = text.trim().toLowerCase();
+    if (!q) return COUNTRIES_WORLD.slice(0, 8);
+    return COUNTRIES_WORLD.filter((c) => c.name.toLowerCase().includes(q)).slice(0, 8);
+  })();
 
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
   useEffect(() => { bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight, behavior: "smooth" }); }, [msgs, step, times, pickDate, done]);
@@ -106,6 +117,26 @@ export default function ChatAssistant() {
     say(`Thanks! Which city in ${c}?`, "city");
   });
 
+  const onOtherCountry = (c) => {
+    // Any other country: phone code + timezone come from the world list.
+    choose(`${isoToFlag(c.iso)} ${c.name}`, () => {
+      setText("");
+      setA((x) => ({ ...x, country: "Other", country_other: c.name, iso: c.iso, city: undefined, city_other: "", tz: c.zones.length === 1 ? c.zones[0] : undefined, zones: c.zones }));
+      if (c.zones.length === 1) {
+        setOtherFor("city");
+        say(`Thanks! Which city in ${c.name}? Please type it.`, "city");
+      } else {
+        say(`${c.name} has more than one timezone. Which one is yours?`, "zone");
+      }
+    });
+  };
+
+  const onZone = (z) => choose(`${cityOfZone(z)} (${utcOffset(z)})`, () => {
+    setA((x) => ({ ...x, tz: z }));
+    setOtherFor("city");
+    say("Thanks! Which city are you in? Please type it.", "city");
+  });
+
   const onCity = (c) => {
     if (c === "Other") { remember(); user("Other"); setOtherFor("city"); say("No worries — please type your city.", "city"); return; }
     choose(c, () => {
@@ -128,7 +159,7 @@ export default function ChatAssistant() {
   const loadTimes = async (dateKey) => {
     setTimes(null);
     let booked = [];
-    try { booked = (await api.get("/demos/availability", { params: { date: dateKey } })).data.booked_times || []; } catch {}
+    try { booked = (await api.get("/demos/availability", { params: { date: dateKey } })).data.booked_times || []; } catch { booked = []; }
     const tooSoon = slotsTooSoon(tz, dateKey);
     setTimes(TIME_SLOTS.filter((t) => !booked.includes(t) && !tooSoon.includes(t)));
   };
@@ -142,13 +173,13 @@ export default function ChatAssistant() {
     e.preventDefault();
     const v = text.trim();
     if (!v) return;
+    if (step === "country_other") { if (matches[0]) onOtherCountry(matches[0]); return; }
     if (otherFor) {
       remember(); user(v); setText("");
       const field = otherFor; setOtherFor(null);
       if (field === "city") {
         setA((x) => ({ ...x, city: "Other", city_other: v }));
-        const t = tzForLocation(a.country);
-        say(`Thanks! Pick a day for the demo (times are in your local time — ${t.split("/")[1].replace(/_/g, " ")}). We're closed on Sundays.`, "date");
+        say(`Thanks! Pick a day for the demo (times are in your local time — ${tzName}). We're closed on Sundays.`, "date");
       } else if (field === "student_class") {
         setA((x) => ({ ...x, student_class: "Other", class_other: v }));
         say("And which subject would you like the demo in?", "subject");
@@ -197,7 +228,7 @@ export default function ChatAssistant() {
     const cls = ans.student_class === "Other" ? ans.class_other : ans.student_class;
     const sub = ans.subject === "Other" ? ans.subject_other : ans.subject;
     say([
-      `Here's your booking:\n• ${ans.dateLabel} at ${ans.time} (${tz.split("/")[1].replace(/_/g, " ")} time)\n• Student: ${ans.student_name} · ${cls} · ${sub}\n• Parent: ${ans.parent_name}\n• ${ans.email} · ${dialCode} ${ans.phone}\n• ${city}, ${ans.country}`,
+      `Here's your booking:\n• ${ans.dateLabel} at ${ans.time} (${tzName} time)\n• Student: ${ans.student_name} · ${cls} · ${sub}\n• Parent: ${ans.parent_name}\n• ${ans.email} · ${dialCode} ${ans.phone}\n• ${city}, ${countryName}`,
       "If everything looks right, tap the button below to confirm.",
     ], "confirm");
   };
@@ -208,7 +239,7 @@ export default function ChatAssistant() {
       const { data } = await api.post("/demos", {
         parent_name: a.parent_name, student_name: a.student_name, email: a.email,
         phone: `${dialCode} ${a.phone}`.trim(),
-        country: a.country, city: a.city, city_other: a.city_other || "",
+        country: a.country, country_other: a.country === "Other" ? a.country_other : "", city: a.city, city_other: a.city_other || "",
         student_class: a.student_class, class_other: a.class_other || "",
         subject: a.subject, subject_other: a.subject_other || "",
         demo_date: a.date, demo_time: a.time, timezone: tz,
@@ -236,15 +267,9 @@ export default function ChatAssistant() {
   const p = location.pathname;
   if (p.startsWith("/book-demo") || p === "/checkout" || p === "/login" || p.startsWith("/app/") || p.startsWith("/session/") || p.startsWith("/pay/") || p === "/payment-success") return null;
 
-  const Chip = ({ onClick, children, primary }) => (
-    <button type="button" onClick={onClick}
-      className={`rounded-full border px-3.5 py-2 text-sm text-left transition-colors ${primary ? "bg-primary text-primary-foreground border-primary hover:bg-accent hover:text-accent-foreground" : "border-primary/40 text-primary bg-background hover:bg-primary/10"}`}>
-      {children}
-    </button>
-  );
 
-  const showText = !otherFor && ["parent_name", "student_name", "email", "phone", "notes"].includes(step);
-  const textPlaceholder = { parent_name: "Parent's full name", student_name: "Student's full name", email: "name@example.com", phone: "Phone number", notes: "Type a note, or tap Skip" }[step] || "";
+  const showText = (!otherFor && ["parent_name", "student_name", "email", "phone", "notes"].includes(step)) || step === "country_other";
+  const textPlaceholder = { country_other: "Type your country…", parent_name: "Parent's full name", student_name: "Student's full name", email: "name@example.com", phone: "Phone number", notes: "Type a note, or tap Skip" }[step] || "";
 
   return (
     <>
@@ -295,7 +320,17 @@ export default function ChatAssistant() {
               <Chip primary onClick={() => choose("Yes, book a free demo", () => say("Great! First — which country are you in?", "country"))}>Book a free demo</Chip>
               <Chip onClick={() => choose("Another question", () => say("Sure — what else would you like to know?", "faq"))}>Another question</Chip>
             </div>}
-            {step === "country" && <div className="flex flex-wrap gap-2">{COUNTRIES.map((c) => <Chip key={c} onClick={() => onCountry(c)}>{c}</Chip>)}</div>}
+            {step === "country" && <div className="flex flex-wrap gap-2">
+              {COUNTRIES.map((c) => <Chip key={c} onClick={() => onCountry(c)}>{c}</Chip>)}
+              <Chip onClick={() => choose("🌍 Another country", () => { setText(""); say("Which country are you in? Start typing its name.", "country_other"); })}>🌍 Another country</Chip>
+            </div>}
+            {step === "country_other" && (
+              <div>
+                <div className="flex flex-wrap gap-2 mb-2">{matches.map((c) => <Chip key={c.iso} onClick={() => onOtherCountry(c)}>{isoToFlag(c.iso)} {c.name}</Chip>)}</div>
+                {matches.length === 0 && <p className="text-xs text-muted-foreground mb-2">No match — check the spelling.</p>}
+              </div>
+            )}
+            {step === "zone" && <div className="flex flex-wrap gap-2">{(a.zones || []).map((z) => <Chip key={z} onClick={() => onZone(z)}>{cityOfZone(z)} ({utcOffset(z)})</Chip>)}</div>}
             {step === "city" && !otherFor && <div className="flex flex-wrap gap-2">{(CITIES_BY_COUNTRY[a.country] || ["Other"]).map((c) => <Chip key={c} onClick={() => onCity(c)}>{c}</Chip>)}</div>}
             {step === "date" && (
               <div>
