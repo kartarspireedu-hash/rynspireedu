@@ -136,12 +136,26 @@ RATE_LIMITED_PATHS = {
     "/api/auth/login": (20, 300),
 }
 
+# Real visitor IP. We sit behind Google's proxy, which APPENDS the connecting
+# address to X-Forwarded-For; anything before it was typed by the visitor and
+# can be faked. So take the entry that many hops from the right
+# (TRUSTED_PROXY_HOPS: 1 for Cloud Run's own domain; 2 if behind an HTTPS load balancer).
+def _client_ip(request: Request) -> str:
+    xff = [p.strip() for p in request.headers.get("x-forwarded-for", "").split(",") if p.strip()]
+    if xff:
+        try:
+            hops = max(1, int(os.environ.get("TRUSTED_PROXY_HOPS", "1")))
+        except ValueError:
+            hops = 1
+        return xff[-hops] if len(xff) >= hops else xff[0]
+    return request.client.host if request.client else "unknown"
+
 @app.middleware("http")
 async def rate_limit(request: Request, call_next):
     limit_cfg = RATE_LIMITED_PATHS.get(request.url.path)
     if limit_cfg and request.method == "POST":
         max_requests, window_seconds = limit_cfg
-        ip = request.client.host if request.client else "unknown"
+        ip = _client_ip(request)
         key = f"{request.url.path}:{ip}"
         now = asyncio.get_event_loop().time()
         bucket = [t for t in _rate_buckets.get(key, []) if now - t < window_seconds]
@@ -443,7 +457,7 @@ async def _clear_failed(identifier: str):
 @api_router.post("/auth/login", response_model=UserOut)
 async def login(payload: LoginInput, request: Request, response: Response):
     email = payload.email.lower().strip()
-    ip = request.client.host if request.client else "unknown"
+    ip = _client_ip(request)
     identifier = f"{ip}:{email}"
     await _check_lockout(identifier)
     u = await db.users.find_one({"email": email})
@@ -498,9 +512,8 @@ async def geo(request: Request):
     if cc and cc != "XX":
         return {"country": cc.upper(), "source": "cf"}
     # Fallback to X-Forwarded-For -> ipapi.co lookup
-    xff = request.headers.get("x-forwarded-for", "")
-    ip = xff.split(",")[0].strip() if xff else (request.client.host if request.client else "")
-    if not ip or ip.startswith(("10.", "127.", "192.168.")):
+    ip = _client_ip(request)
+    if not ip or ip == "unknown" or ip.startswith(("10.", "127.", "192.168.")):
         return {"country": None, "source": "unknown"}
     try:
         import urllib.request
@@ -722,10 +735,26 @@ async def payments_diagnostics(_: dict = Depends(require_role("admin", "owner"))
         "razorpay_key_secret_length": len(secret),
     }
 
+# Server-side price list. The charge amount must NEVER be trusted from the
+# browser: it is checked against these prices. Keep in sync with
+# frontend-new/src/lib/plans.js (USD prices) and context/CurrencyContext.jsx (FX).
+PLAN_PRICES_USD = {"hourly": 39.99, "monthly": 424.99, "quarterly": 1199.99, "halfyearly": 2199.99, "yearly": 3999.99}
+FX_RATES = {"USD": 1.0, "AUD": 1.55, "NZD": 1.68, "GBP": 0.79, "EUR": 0.92, "CAD": 1.36, "AED": 3.67, "SGD": 1.34, "CNY": 7.20}
+PRICE_TOLERANCE = 0.03  # allows rounding / small FX differences, nothing more
+
+def _expected_amount_minor(plan_key: str, currency: str) -> int:
+    price = PLAN_PRICES_USD.get(plan_key)
+    rate = FX_RATES.get(currency.upper())
+    if price is None or rate is None:
+        raise HTTPException(status_code=400, detail="Unknown plan or currency.")
+    return round(price * rate * 100)
+
 @api_router.post("/payments/create-order")
 async def create_order(payload: CreateOrderIn):
-    if payload.amount < 100:
-        raise HTTPException(status_code=400, detail="Amount must be >= 100 minor units")
+    expected = _expected_amount_minor(payload.plan_key, payload.currency)
+    if abs(payload.amount - expected) > expected * PRICE_TOLERANCE:
+        logger.warning("Rejected create-order: plan=%s currency=%s amount=%s expected=%s", payload.plan_key, payload.currency, payload.amount, expected)
+        raise HTTPException(status_code=400, detail="The amount doesn't match this plan's price. Please refresh the page and try again.")
     rc = _razorpay_client()
     try:
         receipt = payload.receipt or f"rcpt_{uuid.uuid4().hex[:12]}"
@@ -924,7 +953,7 @@ async def get_custom_quote(token: str, request: Request, background: BackgroundT
         now = datetime.now(timezone.utc)
         ttl = int(q.get("ttl_minutes") or 15)
         exp = now + timedelta(minutes=ttl)
-        client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "").split(",")[0].strip()
+        client_ip = _client_ip(request)
         res = await db.custom_quotes.update_one(
             {"token": token, "status": "pending", "revoked": {"$ne": True}, "opened_at": None, "expires_at": None},
             {"$set": {"opened_at": now.isoformat(), "expires_at": exp.isoformat(),
@@ -967,7 +996,7 @@ async def create_custom_quote_order(token: str, request: Request):
             "payment_capture": 1,
         })
         # Logged for fraud/dispute review — not shown publicly anywhere.
-        client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "").split(",")[0].strip()
+        client_ip = _client_ip(request)
         await db.custom_quotes.update_one({"token": token}, {"$set": {
             "razorpay_order_id": order["id"],
             "payer_ip": client_ip, "payer_user_agent": request.headers.get("user-agent", ""),
