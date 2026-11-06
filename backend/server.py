@@ -12,6 +12,7 @@ import calendar
 import secrets
 import hmac
 import hashlib
+import html as _html
 import json
 import logging
 import smtplib
@@ -361,7 +362,10 @@ async def send_email(to_addrs: list, subject: str, html: str, reply_to: Optional
     except Exception as e:
         logger.warning("send_email wrapper error: %s", e)
 
+_h = lambda v: _html.escape(str(v), quote=True)  # escape anything a visitor typed before it goes into an email
+
 def _demo_confirmation_html(b: dict) -> str:
+    b = {k: (_h(v) if isinstance(v, str) else v) for k, v in b.items()}
     return f"""
     <div style="font-family:Outfit,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1a1235;">
       <div style="background:#3b1a70;color:#fff;padding:24px 28px;border-radius:14px 14px 0 0;">
@@ -387,6 +391,7 @@ def _demo_confirmation_html(b: dict) -> str:
     """
 
 def _demo_admin_html(b: dict) -> str:
+    b = {k: (_h(v) if isinstance(v, str) else v) for k, v in b.items()}
     return f"""
     <div style="font-family:Outfit,Arial,sans-serif;max-width:640px;color:#1a1235;">
       <h2>New Demo Booking · {b['name']}</h2>
@@ -601,7 +606,7 @@ async def create_demo(payload: DemoBookingIn, background: BackgroundTasks):
 
     care = os.environ.get("CARE_EMAIL", "care@rynspireedu.com")
     background.add_task(_send_email_sync, [doc["email"]], "Your RynSpireEdu Free Demo is Confirmed", _demo_confirmation_html(doc), care)
-    background.add_task(_send_email_sync, [care], f"[New Demo] {doc['name']} · {doc['subject']} · {doc['demo_date']}", _demo_admin_html(doc), doc["email"])
+    background.add_task(_send_email_sync, [care], f"[New Demo] {_h(doc['name'])} · {_h(doc['subject'])} · {doc['demo_date']}", _demo_admin_html(doc), doc["email"])
     background.add_task(_send_to_google_sheet_sync, doc, "Demo Bookings")
 
     return DemoBookingOut(**{k: v for k, v in doc.items() if k != "_id" and k != "currency"})
@@ -666,15 +671,17 @@ class ContactIn(BaseModel):
 @api_router.post("/contact")
 async def contact(payload: ContactIn, background: BackgroundTasks):
     care = os.environ.get("CARE_EMAIL", "care@rynspireedu.com")
+    c_name, c_email, c_phone = _h(payload.name), _h(payload.email), _h(payload.phone or "")
+    c_subject, c_message = _h(payload.subject or ""), _h(payload.message).replace("\n", "<br/>")
     user_html = f"""
     <div style="font-family:Outfit,Arial,sans-serif;max-width:520px;color:#1a1235;">
       <h2 style="color:#3b1a70;">Thanks for reaching out to <span style="color:#f5c542;">Ryn</span><span style="color:#7c3aed;">SpireEdu</span></h2>
-      <p>Hi {payload.name},</p>
+      <p>Hi {c_name},</p>
       <p>We've received your message and one of our team will reply within <strong>24 hours</strong>.</p>
       <p style="color:#6b7280;font-size:13px;">— RynSpireEdu · Best Online Tutoring Services</p>
     </div>
     """
-    admin_html = f"<h3>New Care Message</h3><p><b>From:</b> {payload.name} &lt;{payload.email}&gt;{f' · {payload.phone}' if payload.phone else ''}</p>{f'<p><b>Subject:</b> {payload.subject}</p>' if payload.subject else ''}<p>{payload.message}</p>"
+    admin_html = f"<h3>New Care Message</h3><p><b>From:</b> {c_name} &lt;{c_email}&gt;{f' · {c_phone}' if c_phone else ''}</p>{f'<p><b>Subject:</b> {c_subject}</p>' if c_subject else ''}<p>{c_message}</p>"
     background.add_task(_send_email_sync, [payload.email], "Thanks for contacting RynSpireEdu", user_html, care)
     background.add_task(_send_email_sync, [care], f"[Care] {payload.subject or payload.name}", admin_html, payload.email)
     contact_doc = {
@@ -799,11 +806,11 @@ async def verify_payment(payload: VerifyPaymentIn, background: BackgroundTasks):
         html = f"""
         <div style="font-family:Outfit,Arial,sans-serif;max-width:520px;color:#1a1235;">
           <h2 style="color:#3b1a70;">Payment received — welcome aboard! 🎉</h2>
-          <p>Hi {payload.customer_name or 'there'},</p>
-          <p>Thank you! Your payment for <strong>{payload.plan_key or 'your RynSpireEdu plan'}</strong> has been successfully received.</p>
+          <p>Hi {_h(payload.customer_name or 'there')},</p>
+          <p>Thank you! Your payment for <strong>{_h(payload.plan_key or 'your RynSpireEdu plan')}</strong> has been successfully received.</p>
           <p>We're delighted to have you with <span style="color:#f5c542;">Ryn</span><span style="color:#7c3aed;">SpireEdu</span> — our team will reach out within 24 hours to help you get onboarded and schedule your first session.</p>
           {account_link_html}
-          <p style="color:#6b7280;font-size:13px;">Order ID: <code>{payload.razorpay_order_id}</code><br/>Payment ID: <code>{payload.razorpay_payment_id}</code></p>
+          <p style="color:#6b7280;font-size:13px;">Order ID: <code>{_h(payload.razorpay_order_id)}</code><br/>Payment ID: <code>{_h(payload.razorpay_payment_id)}</code></p>
           <p style="margin-top:20px;">Questions in the meantime? Just reply to this email or write to <a href="mailto:care@rynspireedu.com">care@rynspireedu.com</a>.</p>
           <p style="color:#6b7280;font-size:13px;">— RynSpireEdu · Best Online Tutoring Services</p>
         </div>
@@ -1008,8 +1015,8 @@ async def verify_custom_quote(token: str, payload: CustomQuoteVerifyIn, backgrou
             <h2 style="color:#b91c1c;">A payment was captured after this link was revoked or expired</h2>
             <p>This needs your manual review — please check this payment in your Razorpay dashboard and refund it if appropriate.</p>
             <p>Amount: <strong>{q['amount']/100} {q['currency']}</strong><br/>
-            Customer: {q.get('customer_name') or '—'} ({q.get('customer_email') or '—'})<br/>
-            Order ID: <code>{payload.razorpay_order_id}</code><br/>Payment ID: <code>{payload.razorpay_payment_id}</code></p>
+            Customer: {_h(q.get('customer_name') or '—')} ({_h(q.get('customer_email') or '—')})<br/>
+            Order ID: <code>{_h(payload.razorpay_order_id)}</code><br/>Payment ID: <code>{_h(payload.razorpay_payment_id)}</code></p>
             </div>""", care)
         background.add_task(_send_to_google_sheet_sync, {
             "token": token, "status": "⚠️ PAID BUT REVOKED — needs manual refund review",
@@ -1029,19 +1036,19 @@ async def verify_custom_quote(token: str, payload: CustomQuoteVerifyIn, backgrou
     background.add_task(_send_email_sync, [care], "💰 Custom payment received · RynSpireEdu",
         f"""<div style="font-family:Outfit,Arial,sans-serif;max-width:520px;">
         <h2 style="color:#166534;">Payment received</h2>
-        <p>Amount: <strong>{q['amount']/100} {q['currency']}</strong>{f" — {q['note']}" if q.get('note') else ""}</p>
-        <p>From: {q.get('customer_name') or '—'} ({q.get('customer_email') or '—'})
-        {f"<br/>For: {q.get('child_name')} ({q.get('child_grade')})" if q.get('child_name') else ""}</p>
-        <p style="color:#6b7280;font-size:13px;">Payment ID: <code>{payload.razorpay_payment_id}</code></p>
+        <p>Amount: <strong>{q['amount']/100} {q['currency']}</strong>{f" — {_h(q['note'])}" if q.get('note') else ""}</p>
+        <p>From: {_h(q.get('customer_name') or '—')} ({_h(q.get('customer_email') or '—')})
+        {f"<br/>For: {_h(q.get('child_name'))} ({_h(q.get('child_grade'))})" if q.get('child_name') else ""}</p>
+        <p style="color:#6b7280;font-size:13px;">Payment ID: <code>{_h(payload.razorpay_payment_id)}</code></p>
         </div>""", care)
     if q.get("customer_email"):
         html = f"""
         <div style="font-family:Outfit,Arial,sans-serif;max-width:520px;color:#1a1235;">
           <h2 style="color:#3b1a70;">Payment received — thank you! 🎉</h2>
-          <p>Hi {q.get('customer_name') or 'there'},</p>
-          <p>Thank you! Your payment{f" for {q['note']}" if q.get('note') else ""} has been successfully received.</p>
+          <p>Hi {_h(q.get('customer_name') or 'there')},</p>
+          <p>Thank you! Your payment{f" for {_h(q['note'])}" if q.get('note') else ""} has been successfully received.</p>
           <p>Our team will reach out shortly to confirm next steps.</p>
-          <p style="color:#6b7280;font-size:13px;">Order ID: <code>{payload.razorpay_order_id}</code><br/>Payment ID: <code>{payload.razorpay_payment_id}</code></p>
+          <p style="color:#6b7280;font-size:13px;">Order ID: <code>{_h(payload.razorpay_order_id)}</code><br/>Payment ID: <code>{_h(payload.razorpay_payment_id)}</code></p>
           <p style="margin-top:20px;">Questions? Just reply to this email or write to <a href="mailto:care@rynspireedu.com">care@rynspireedu.com</a>.</p>
           <p style="color:#6b7280;font-size:13px;">— RynSpireEdu · Best Online Tutoring Services</p>
         </div>
@@ -1230,13 +1237,13 @@ async def submit_feedback(payload: FeedbackIn, background: BackgroundTasks):
     care = os.environ.get("CARE_EMAIL", "care@rynspireedu.com")
     html = f"""<div style="font-family:Outfit,Arial,sans-serif;max-width:560px;color:#1a1235;">
       <h2 style="color:#3b1a70;">New feedback · {doc['rating']}/5</h2>
-      <p><strong>{doc['name']}</strong> ({doc['who']}){f" — student: {doc['student_name']}" if doc['student_name'] else ""}<br/>
-      {f"Tutor: {doc['tutor_name']}<br/>" if doc['tutor_name'] else ""}{f"Subject: {doc['subject']}<br/>" if doc['subject'] else ""}
-      Would continue: {doc['would_continue']}</p>
-      {f"<p><strong>What went well:</strong><br/>{doc['liked']}</p>" if doc['liked'] else ""}
-      {f"<p><strong>What to improve:</strong><br/>{doc['improve']}</p>" if doc['improve'] else ""}
+      <p><strong>{_h(doc['name'])}</strong> ({_h(doc['who'])}){f" — student: {_h(doc['student_name'])}" if doc['student_name'] else ""}<br/>
+      {f"Tutor: {_h(doc['tutor_name'])}<br/>" if doc['tutor_name'] else ""}{f"Subject: {_h(doc['subject'])}<br/>" if doc['subject'] else ""}
+      Would continue: {_h(doc['would_continue'])}</p>
+      {f"<p><strong>What went well:</strong><br/>{_h(doc['liked'])}</p>" if doc['liked'] else ""}
+      {f"<p><strong>What to improve:</strong><br/>{_h(doc['improve'])}</p>" if doc['improve'] else ""}
     </div>"""
-    background.add_task(_send_email_sync, [care], f"[Feedback] {doc['rating']}/5 from {doc['name']}", html, doc["email"] or None)
+    background.add_task(_send_email_sync, [care], f"[Feedback] {doc['rating']}/5 from {_h(doc['name'])}", html, doc["email"] or None)
     return {"ok": True}
 
 @api_router.get("/admin/feedback")
@@ -1313,8 +1320,16 @@ if _static_dir.exists():
     @app.get("/{full_path:path}")
     async def serve_frontend(full_path: str):
         # Serve real static files (favicons, robots.txt, sitemap.xml, etc.) directly
+        # Never serve anything outside the static folder (blocks "../" tricks,
+        # including URL-encoded ones like %2e%2e).
+        static_root = _static_dir.resolve()
+        def _inside_static(path):
+            try:
+                return path.resolve().is_relative_to(static_root)
+            except (OSError, ValueError):
+                return False
         candidate = _static_dir / full_path
-        if full_path and candidate.is_file():
+        if full_path and candidate.is_file() and _inside_static(candidate):
             return FileResponse(str(candidate))
         # Prerendered page snapshot (SEO/AEO): fully-rendered HTML generated
         # at build time for this exact public route, if one exists. Falls
@@ -1323,7 +1338,7 @@ if _static_dir.exists():
         # unaffected and behave exactly as before.
         if full_path:
             prerendered = _static_dir / full_path.strip("/") / "index.html"
-            if prerendered.is_file():
+            if prerendered.is_file() and _inside_static(prerendered):
                 return FileResponse(str(prerendered))
         # Everything else (React Router client-side routes) falls back to index.html
         index_file = _static_dir / "index.html"
