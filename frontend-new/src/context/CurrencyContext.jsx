@@ -33,7 +33,7 @@ export function CurrencyProvider({ children }) {
       const saved = window.localStorage.getItem("rynspireedu.currency");
       if (saved && FX[saved]) return saved;
     }
-    return "AUD"; // primary market default
+    return "USD"; // default: USD (US & Canada focus; unlisted countries use USD)
   });
   const [country, setCountry] = useState(null);
 
@@ -46,11 +46,12 @@ export function CurrencyProvider({ children }) {
         const { data } = await api.get("/geo");
         if (data?.country) {
           setCountry(data.country);
-          const c = COUNTRY_TO_CURRENCY[data.country];
-          if (c && FX[c]) setCurrency(c);
+          // Countries not in the map are priced in USD.
+          const c = COUNTRY_TO_CURRENCY[data.country] || "USD";
+          if (FX[c]) setCurrency(c);
         }
       } catch (err) {
-        // Geo lookup is best-effort; default currency remains AUD
+        // Geo lookup is best-effort; default currency remains USD
         if (process.env.NODE_ENV !== "production") {
           console.debug("[currency] geo lookup failed:", err?.message);
         }

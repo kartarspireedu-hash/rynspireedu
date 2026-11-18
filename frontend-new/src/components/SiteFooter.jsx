@@ -120,7 +120,7 @@ export default function SiteFooter() {
             <CityList cities={CANADA_CITIES} />
           </div>
           <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground pt-4 border-t border-border">
-            RynSpireEdu — a brand of SpireEdu Services · Online lessons delivered anywhere. Local coordinator support for AU, NZ, US &amp; Canada families.
+            RynSpireEdu — a brand of SpireEdu Services · Online lessons delivered anywhere. Coordinator support during your local hours for AU, NZ, US &amp; Canada families.
           </p>
         </div>
       </div>

@@ -198,6 +198,14 @@ export default function BookDemo() {
   useEffect(() => {
     if (step === 4 && !pixelFiredRef.current) {
       pixelFiredRef.current = true;
+      // GTM/GA4 conversion event (no personal data). Consent Mode in GTM decides whether it is sent.
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({
+        event: 'demo_booked',
+        demo_country: form.country,
+        demo_subject: form.subject,
+        demo_grade: form.student_class,
+      });
       if (window.fbq) {
         window.fbq('track', 'Schedule', {
           content_name: 'free_demo_class',
